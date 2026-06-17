@@ -85,7 +85,7 @@ HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ImgUniq — Уникализатор изображений</title>
+<title>ImgUniq - Уникализатор изображений</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -518,7 +518,7 @@ HTML = '''<!DOCTYPE html>
       <span class="logo-text">ImgUniq v1.0</span>
     </div>
     <h1>Уникализация<br><span>без следов</span></h1>
-    <p class="subtitle">Вставь ссылку на скриншот — получи статическую ссылку,<br>по которой каждый раз будет новая уникальная версия</p>
+    <p class="subtitle">Вставь ссылку на скриншот - получи статическую ссылку,<br>по которой каждый раз будет новая уникальная версия</p>
   </header>
 
   <!-- Stats -->
@@ -563,7 +563,7 @@ HTML = '''<!DOCTYPE html>
       <textarea 
         class="urls-textarea" 
         id="urlsTextarea"
-        placeholder="Вставь несколько ссылок — каждую с новой строки..."
+        placeholder="Вставь несколько ссылок - каждую с новой строки..."
         oninput="countUrls()"
       ></textarea>
       <div style="display:flex; justify-content:flex-end; margin-top:10px; gap:8px">
@@ -589,7 +589,7 @@ HTML = '''<!DOCTYPE html>
 
 </div>
 
-<footer>ImgUniq — каждый рендер уникален</footer>
+<footer>ImgUniq - каждый рендер уникален</footer>
 
 <div class="toast" id="toast">
   <div class="toast-dot"></div>
