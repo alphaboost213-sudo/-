@@ -1065,10 +1065,6 @@ HTML = '''<!DOCTYPE html>
     <a href="/logout">Выйти</a>
   </div>
   <header>
-    <div class="logo-badge">
-      <div class="logo-dot"></div>
-      <span class="logo-text">ImgUniq v1.2</span>
-    </div>
     <h1>Уникализация<br><span>фото и видео</span></h1>
     <p class="subtitle">Вставь ссылку на картинку или видео — получи статическую ссылку,<br>по которой каждый раз будет новая версия</p>
   </header>
@@ -1150,7 +1146,7 @@ HTML = '''<!DOCTYPE html>
 
 </div>
 
-<footer>ImgUniq — каждый рендер создаётся заново</footer>
+
 
 <div class="toast" id="toast">
   <div class="toast-dot"></div>
@@ -1391,7 +1387,6 @@ ADMIN_HTML = '''<!DOCTYPE html>
   <div class="top"><h1>Пользователи</h1><div><a href="/">Главная</a> · <a href="/logout">Выйти</a></div></div>
   <div class="card">
     <h2>Добавить известного пользователя</h2>
-    <p class="muted">Самостоятельной регистрации нет. Пароль задаёшь ты; смены пароля пользователем нет.</p>
     {% if message %}<div class="msg">{{ message }}</div>{% endif %}
     {% if error %}<div class="err">{{ error }}</div>{% endif %}
     <form method="post" class="grid">
