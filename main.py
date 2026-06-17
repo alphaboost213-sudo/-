@@ -573,7 +573,7 @@ HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ImgUniq — Уникализатор фото и видео</title>
+<title>ImgUniq - Уникализатор фото и видео</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1065,12 +1065,8 @@ HTML = '''<!DOCTYPE html>
     <a href="/logout">Выйти</a>
   </div>
   <header>
-    <div class="logo-badge">
-      <div class="logo-dot"></div>
-      <span class="logo-text">ImgUniq v1.2</span>
-    </div>
     <h1>Уникализация<br><span>фото и видео</span></h1>
-    <p class="subtitle">Вставь ссылку на картинку или видео — получи статическую ссылку,<br>по которой каждый раз будет новая версия</p>
+    <p class="subtitle">Вставь ссылку на картинку или видео - получи статическую ссылку,<br>по которой каждый раз будет новая версия</p>
   </header>
 
   <!-- Stats -->
@@ -1124,7 +1120,7 @@ HTML = '''<!DOCTYPE html>
       <textarea 
         class="urls-textarea" 
         id="urlsTextarea"
-        placeholder="Вставь несколько ссылок одного типа — каждую с новой строки..."
+        placeholder="Вставь несколько ссылок одного типа - каждую с новой строки..."
         oninput="countUrls()"
       ></textarea>
       <div style="display:flex; justify-content:flex-end; margin-top:10px; gap:8px">
@@ -1150,7 +1146,6 @@ HTML = '''<!DOCTYPE html>
 
 </div>
 
-<footer>ImgUniq — каждый рендер создаётся заново</footer>
 
 <div class="toast" id="toast">
   <div class="toast-dot"></div>
@@ -1346,7 +1341,7 @@ LOGIN_HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Вход — ImgUniq</title>
+<title>Вход - ImgUniq</title>
 <style>
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0f;color:#f1f1f5;font-family:Inter,Arial,sans-serif}
   .card{width:min(420px,calc(100vw - 32px));background:#111118;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px;box-shadow:0 20px 70px rgba(0,0,0,.35)}
@@ -1375,7 +1370,7 @@ ADMIN_HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Пользователи — ImgUniq</title>
+<title>Пользователи - ImgUniq</title>
 <style>
   body{margin:0;min-height:100vh;background:#0a0a0f;color:#f1f1f5;font-family:Inter,Arial,sans-serif;padding:32px 18px}
   .wrap{max-width:980px;margin:0 auto}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}a{color:#a78bfa;text-decoration:none}
@@ -1390,8 +1385,7 @@ ADMIN_HTML = '''<!DOCTYPE html>
 <body><div class="wrap">
   <div class="top"><h1>Пользователи</h1><div><a href="/">Главная</a> · <a href="/logout">Выйти</a></div></div>
   <div class="card">
-    <h2>Добавить известного пользователя</h2>
-    <p class="muted">Самостоятельной регистрации нет. Пароль задаёшь ты; смены пароля пользователем нет.</p>
+    <h2>Добавить пользователя</h2>
     {% if message %}<div class="msg">{{ message }}</div>{% endif %}
     {% if error %}<div class="err">{{ error }}</div>{% endif %}
     <form method="post" class="grid">
@@ -1405,7 +1399,6 @@ ADMIN_HTML = '''<!DOCTYPE html>
 
   <div class="card">
     <h2>Очистка базы</h2>
-    <p class="muted">Можно очистить только логи или удалить всех добавленных пользователей. Основной admin останется, пароль возьмётся из Railway-переменной ADMIN_PASSWORD.</p>
     <div class="danger-row">
       <form method="post" onsubmit="return confirm('Точно очистить логи входов и действий?')">
         <input type="hidden" name="action" value="clear_logs">
