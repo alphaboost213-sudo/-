@@ -1065,6 +1065,10 @@ HTML = '''<!DOCTYPE html>
     <a href="/logout">Выйти</a>
   </div>
   <header>
+    <div class="logo-badge">
+      <div class="logo-dot"></div>
+      <span class="logo-text">ImgUniq v1.2</span>
+    </div>
     <h1>Уникализация<br><span>фото и видео</span></h1>
     <p class="subtitle">Вставь ссылку на картинку или видео — получи статическую ссылку,<br>по которой каждый раз будет новая версия</p>
   </header>
@@ -1146,7 +1150,7 @@ HTML = '''<!DOCTYPE html>
 
 </div>
 
-
+<footer>ImgUniq — каждый рендер создаётся заново</footer>
 
 <div class="toast" id="toast">
   <div class="toast-dot"></div>
@@ -1378,7 +1382,7 @@ ADMIN_HTML = '''<!DOCTYPE html>
   .card{background:#111118;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;margin-bottom:18px}.muted{color:#74748a;font-size:13px;line-height:1.5}
   h1{margin:0;font-size:30px}h2{margin:0 0 14px;font-size:18px}label{display:block;margin:12px 0 7px;color:#74748a;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
   input,select{width:100%;box-sizing:border-box;background:#1a1a24;border:1px solid rgba(255,255,255,.08);border-radius:12px;color:#fff;padding:12px 14px;outline:none}
-  button{margin-top:14px;border:0;border-radius:12px;padding:12px 16px;background:linear-gradient(135deg,#7c3aed,#0891b2);color:#fff;font-weight:600;cursor:pointer}.grid{display:grid;grid-template-columns:1fr 1fr 140px;gap:12px}
+  button{margin-top:14px;border:0;border-radius:12px;padding:12px 16px;background:linear-gradient(135deg,#7c3aed,#0891b2);color:#fff;font-weight:600;cursor:pointer}.danger{background:linear-gradient(135deg,#dc2626,#7f1d1d)}.danger-row{display:flex;gap:12px;flex-wrap:wrap}.danger-row form{display:inline}.grid{display:grid;grid-template-columns:1fr 1fr 140px;gap:12px}
   table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left;vertical-align:top}th{color:#74748a;font-size:11px;text-transform:uppercase;letter-spacing:.08em}.pass{font-family:monospace;color:#d8b4fe}.ok{color:#86efac}.bad{color:#fecaca}.msg{margin-bottom:14px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:12px 14px;color:#bbf7d0}.err{margin-bottom:14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:12px 14px;color:#fecaca}
   @media(max-width:760px){.grid{grid-template-columns:1fr}.table-wrap{overflow:auto}}
 </style>
@@ -1387,14 +1391,31 @@ ADMIN_HTML = '''<!DOCTYPE html>
   <div class="top"><h1>Пользователи</h1><div><a href="/">Главная</a> · <a href="/logout">Выйти</a></div></div>
   <div class="card">
     <h2>Добавить известного пользователя</h2>
+    <p class="muted">Самостоятельной регистрации нет. Пароль задаёшь ты; смены пароля пользователем нет.</p>
     {% if message %}<div class="msg">{{ message }}</div>{% endif %}
     {% if error %}<div class="err">{{ error }}</div>{% endif %}
     <form method="post" class="grid">
+      <input type="hidden" name="action" value="add_user">
       <div><label>Логин</label><input name="login" required></div>
       <div><label>Пароль</label><input name="password" required></div>
       <div><label>Роль</label><select name="role"><option value="user">user</option><option value="admin">admin</option></select></div>
       <div style="grid-column:1/-1"><button type="submit">Добавить</button></div>
     </form>
+  </div>
+
+  <div class="card">
+    <h2>Очистка базы</h2>
+    <p class="muted">Можно очистить только логи или удалить всех добавленных пользователей. Основной admin останется, пароль возьмётся из Railway-переменной ADMIN_PASSWORD.</p>
+    <div class="danger-row">
+      <form method="post" onsubmit="return confirm('Точно очистить логи входов и действий?')">
+        <input type="hidden" name="action" value="clear_logs">
+        <button class="danger" type="submit">Очистить логи</button>
+      </form>
+      <form method="post" onsubmit="return confirm('Точно удалить всех пользователей кроме admin и очистить логи?')">
+        <input type="hidden" name="action" value="clear_users">
+        <button class="danger" type="submit">Оставить только admin</button>
+      </form>
+    </div>
   </div>
 
   <div class="card table-wrap">
@@ -1463,28 +1484,60 @@ def admin_users():
     error = ''
 
     if request.method == 'POST':
-        login_value = normalize_login(request.form.get('login', ''))
-        password = (request.form.get('password', '') or '').strip()
-        role = (request.form.get('role', 'user') or 'user').strip().lower()
+        action = (request.form.get('action') or 'add_user').strip()
 
-        if role not in ('user', 'admin'):
-            role = 'user'
-
-        if not re.fullmatch(r'[a-z0-9_.@+-]{2,64}', login_value or ''):
-            error = 'Логин: 2–64 символа, латиница/цифры/._@+-'
-        elif len(password) < 4:
-            error = 'Пароль должен быть минимум 4 символа'
-        elif get_user_by_login(login_value):
-            error = 'Такой логин уже есть'
-        else:
+        if action == 'clear_logs':
             with get_db() as conn:
-                conn.execute(
-                    '''INSERT INTO users (id, login, password_hash, password_plain, role, is_active, created)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                    (uuid.uuid4().hex, login_value, generate_password_hash(password), password, role, 1, time.time())
-                )
-            log_action('user_created', f'{login_value} / role={role}')
-            message = f'Пользователь {login_value} добавлен'
+                conn.execute('DELETE FROM auth_logs')
+                conn.execute('DELETE FROM action_logs')
+            message = 'Логи входов и действий очищены'
+
+        elif action == 'clear_users':
+            admin_password = get_or_create_bootstrap_admin_password()
+            with get_db() as conn:
+                conn.execute('DELETE FROM users WHERE login <> ?', (ADMIN_LOGIN,))
+                existing = conn.execute('SELECT id FROM users WHERE login = ?', (ADMIN_LOGIN,)).fetchone()
+                if existing:
+                    conn.execute(
+                        '''UPDATE users
+                           SET password_hash = ?, password_plain = ?, role = 'admin', is_active = 1
+                           WHERE login = ?''',
+                        (generate_password_hash(admin_password), admin_password, ADMIN_LOGIN)
+                    )
+                else:
+                    conn.execute(
+                        '''INSERT INTO users (id, login, password_hash, password_plain, role, is_active, created)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                        (uuid.uuid4().hex, ADMIN_LOGIN, generate_password_hash(admin_password), admin_password, 'admin', 1, time.time())
+                    )
+                conn.execute('DELETE FROM auth_logs')
+                conn.execute('DELETE FROM action_logs')
+            session['user'] = {'login': ADMIN_LOGIN, 'role': 'admin'}
+            message = 'База пользователей очищена: оставлен только admin'
+
+        else:
+            login_value = normalize_login(request.form.get('login', ''))
+            password = (request.form.get('password', '') or '').strip()
+            role = (request.form.get('role', 'user') or 'user').strip().lower()
+
+            if role not in ('user', 'admin'):
+                role = 'user'
+
+            if not re.fullmatch(r'[a-z0-9_.@+-]{2,64}', login_value or ''):
+                error = 'Логин: 2–64 символа, латиница/цифры/._@+-'
+            elif len(password) < 4:
+                error = 'Пароль должен быть минимум 4 символа'
+            elif get_user_by_login(login_value):
+                error = 'Такой логин уже есть'
+            else:
+                with get_db() as conn:
+                    conn.execute(
+                        '''INSERT INTO users (id, login, password_hash, password_plain, role, is_active, created)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                        (uuid.uuid4().hex, login_value, generate_password_hash(password), password, role, 1, time.time())
+                    )
+                log_action('user_created', f'{login_value} / role={role}')
+                message = f'Пользователь {login_value} добавлен'
 
     with get_db() as conn:
         users = conn.execute('SELECT login, password_plain, role, is_active, created FROM users ORDER BY created DESC').fetchall()
