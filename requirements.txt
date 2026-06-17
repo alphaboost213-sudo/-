@@ -1,0 +1,4 @@
+﻿Flask>=3.0,<4
+Pillow>=11.0,<13
+gunicorn>=21,<24
+requests>=2.32,<3
