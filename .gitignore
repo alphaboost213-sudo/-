@@ -1,8 +1,0 @@
-﻿__pycache__/
-*.py[cod]
-.venv/
-venv/
-.env
-.env.*
-data/*.sqlite3
-data/*.sqlite3-*
