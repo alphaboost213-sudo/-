@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["wireguard-tools", "iproute2", "iptables", "python311", "python311Packages.pip"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "bash /app/start.sh"
