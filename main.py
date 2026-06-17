@@ -5,6 +5,8 @@ import time
 import random
 import sqlite3
 import urllib.request
+import urllib.error
+import traceback
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from flask import Flask, request, jsonify, send_file, render_template_string
@@ -208,25 +210,76 @@ def add_cache_buster(url: str) -> str:
     return urlunparse(parsed._replace(query=urlencode(query), fragment=''))
 
 
-def load_image_from_url(url: str, is_dynamic: bool = False) -> Image.Image:
-    """Загружает изображение по URL. Для dynamic_url каждый раз добавляет cache-buster."""
-    request_url = add_cache_buster(url) if is_dynamic else url
+def _headers_for_source(is_dynamic: bool = False) -> dict:
+    """Заголовки для загрузки исходника.
+
+    Важно: не просим AVIF/SVG. Pillow на Railway часто не умеет AVIF,
+    а SVG вообще не растр. Из-за этого источник мог отдать файл, который
+    приложение потом не могло открыть как картинку.
+    """
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Accept': 'image/jpeg,image/png,image/webp,image/gif,image/*;q=0.8,*/*;q=0.5',
     }
 
     if is_dynamic:
         headers.update({
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, max-age=0',
             'Pragma': 'no-cache',
         })
 
-    req = urllib.request.Request(request_url, headers=headers)
-    with urllib.request.urlopen(req, timeout=20) as response:
-        data = response.read()
+    return headers
 
-    return Image.open(io.BytesIO(data)).convert('RGB')
+
+def _download_and_open_image(request_url: str, headers: dict) -> Image.Image:
+    req = urllib.request.Request(request_url, headers=headers)
+
+    try:
+        with urllib.request.urlopen(req, timeout=25) as response:
+            content_type = response.headers.get('Content-Type', '').lower()
+            data = response.read()
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f'HTTP {e.code} при загрузке исходника') from e
+    except urllib.error.URLError as e:
+        reason = getattr(e, 'reason', e)
+        raise RuntimeError(f'Не удалось открыть исходник: {reason}') from e
+
+    if not data:
+        raise RuntimeError('Источник вернул пустой ответ')
+
+    # Если сервер явно вернул HTML/JSON, не пытаемся молча открыть это как картинку.
+    if content_type and ('text/html' in content_type or 'application/json' in content_type):
+        preview = data[:120].decode('utf-8', errors='ignore').replace('\n', ' ').strip()
+        raise RuntimeError(f'Источник вернул не картинку ({content_type}): {preview}')
+
+    try:
+        return Image.open(io.BytesIO(data)).convert('RGB')
+    except Exception as e:
+        raise RuntimeError(f'Pillow не смог открыть изображение. Content-Type: {content_type or "unknown"}') from e
+
+
+def load_image_from_url(url: str, is_dynamic: bool = False) -> Image.Image:
+    """Загружает изображение по URL.
+
+    Для dynamic_url сначала пробует URL с cache-buster. Если источник
+    подписанный и лишний query-параметр ломает ссылку, аккуратно падаем
+    обратно на исходный URL, но всё равно отправляем no-cache заголовки.
+    """
+    headers = _headers_for_source(is_dynamic=is_dynamic)
+
+    urls_to_try = []
+    if is_dynamic:
+        urls_to_try.append(add_cache_buster(url))
+    urls_to_try.append(url)
+
+    errors = []
+    for request_url in urls_to_try:
+        try:
+            return _download_and_open_image(request_url, headers)
+        except Exception as e:
+            errors.append(str(e) or e.__class__.__name__)
+
+    raise RuntimeError('Не удалось загрузить исходное изображение: ' + ' | '.join(errors[-2:]))
 
 
 # ─── HTML интерфейс ───────────────────────────────────────────────────────────
@@ -1054,7 +1107,45 @@ def serve_image(img_id):
         return response
         
     except Exception as e:
-        return f'Error loading image: {str(e)}', 500
+        traceback.print_exc()
+        details = str(e) or e.__class__.__name__
+        return f'Error loading image: {details}', 500
+
+
+@app.route('/api/debug/<img_id>')
+def debug_image(img_id):
+    """Мини-диагностика ссылки без генерации изображения."""
+    record = get_image_record(img_id)
+    if not record:
+        return jsonify({'success': False, 'error': 'Not found'}), 404
+
+    source_url = record['url']
+    is_dynamic = record['source_type'] == 'dynamic_url'
+    test_url = add_cache_buster(source_url) if is_dynamic else source_url
+
+    try:
+        headers = _headers_for_source(is_dynamic=is_dynamic)
+        req = urllib.request.Request(test_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as response:
+            content_type = response.headers.get('Content-Type', '')
+            status = getattr(response, 'status', 200)
+            first_bytes = response.read(32)
+
+        return jsonify({
+            'success': True,
+            'id': img_id,
+            'source_type': record['source_type'],
+            'status': status,
+            'content_type': content_type,
+            'first_bytes_hex': first_bytes.hex(),
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'id': img_id,
+            'source_type': record['source_type'],
+            'error': str(e) or e.__class__.__name__,
+        }), 500
 
 
 @app.route('/api/stats')
