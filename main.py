@@ -282,14 +282,6 @@ def count_registered() -> int:
 
 init_db()
 
-# Диагностика ffmpeg при старте
-_ffmpeg_path = get_ffmpeg_exe()
-if os.path.isfile(_ffmpeg_path) or shutil.which(_ffmpeg_path):
-    print(f'ImgUniq ffmpeg: {_ffmpeg_path}')
-else:
-    print(f'ImgUniq WARNING: ffmpeg не найден (путь: {_ffmpeg_path}). Видео не будет работать.')
-    print('  Установите: apt-get install ffmpeg  или  pip install imageio-ffmpeg')
-
 def normalize_login(login: str) -> str:
     return (login or '').strip().lower()
 
@@ -2265,5 +2257,12 @@ def stats():
 
 
 if __name__ == '__main__':
+    # Диагностика ffmpeg при старте
+    _ffmpeg_path = get_ffmpeg_exe()
+    if os.path.isfile(_ffmpeg_path) or shutil.which(_ffmpeg_path):
+        print(f'ImgUniq ffmpeg: {_ffmpeg_path}')
+    else:
+        print(f'ImgUniq WARNING: ffmpeg не найден (путь: {_ffmpeg_path}). Видео не будет работать.')
+        print('  Установите: apt-get install ffmpeg  или  pip install imageio-ffmpeg')
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
