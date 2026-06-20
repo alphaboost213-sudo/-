@@ -3,13 +3,13 @@ import io
 import uuid
 import time
 import random
-import shutil
 import sqlite3
 import urllib.request
 import subprocess
 import tempfile
 import secrets
 import re
+import shutil
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
@@ -18,7 +18,6 @@ from flask import Flask, request, jsonify, send_file, render_template_string, af
 from flask_cors import CORS
 from PIL import Image, ImageFilter, ImageEnhance
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 import numpy as np
 
 app = Flask(__name__)
@@ -33,12 +32,9 @@ if not DATA_DIR.exists():
 
 DB_PATH = DATA_DIR / 'imguniq.sqlite3'
 
-# Папки для хранения оригиналов, загруженных как файл (а не по ссылке).
-UPLOAD_DIR = DATA_DIR / 'uploads'
-UPLOAD_IMAGE_DIR = UPLOAD_DIR / 'images'
-UPLOAD_VIDEO_DIR = UPLOAD_DIR / 'videos'
-UPLOAD_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
-UPLOAD_VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+# Папка для загруженных файлов (файлы, загружаемые пользователем напрямую)
+UPLOADS_DIR = DATA_DIR / 'uploads'
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_or_create_secret_key() -> str:
@@ -76,14 +72,6 @@ PUBLIC_MEDIA_LINKS = os.environ.get('PUBLIC_MEDIA_LINKS', '1').lower() not in ('
 VIDEO_VARIANTS_DEFAULT = int(os.environ.get('VIDEO_VARIANTS_DEFAULT', 5))
 VIDEO_VARIANTS_MAX = int(os.environ.get('VIDEO_VARIANTS_MAX', 5))
 VIDEO_MAX_SECONDS = int(os.environ.get('VIDEO_MAX_SECONDS', 90))
-
-# ─── Загрузка файлов с устройства (не по ссылке) ──────────────────────────────
-MAX_IMAGE_UPLOAD_BYTES = int(os.environ.get('MAX_IMAGE_UPLOAD_BYTES', 25 * 1024 * 1024))
-UPLOAD_MAX_TOTAL_BYTES = int(os.environ.get('UPLOAD_MAX_TOTAL_BYTES', 300 * 1024 * 1024))
-app.config['MAX_CONTENT_LENGTH'] = UPLOAD_MAX_TOTAL_BYTES
-
-ALLOWED_IMAGE_EXT = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.tiff'}
-ALLOWED_VIDEO_EXT = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v', '.flv'}
 
 # Optional outbound proxy for original media links.
 # Example: SOURCE_PROXY_URL=http://user:password@gate.vpn:8080
@@ -185,8 +173,6 @@ def init_db():
         ensure_column(conn, 'images', 'created_by', 'TEXT')
         ensure_column(conn, 'videos', 'created_by', 'TEXT')
         ensure_column(conn, 'videos', 'variant', 'INTEGER NOT NULL DEFAULT 1')
-        ensure_column(conn, 'images', 'source_type', "TEXT NOT NULL DEFAULT 'url'")
-        ensure_column(conn, 'videos', 'source_type', "TEXT NOT NULL DEFAULT 'url'")
 
         admin_password = get_or_create_bootstrap_admin_password()
         existing = conn.execute('SELECT id FROM users WHERE login = ?', (ADMIN_LOGIN,)).fetchone()
@@ -254,18 +240,8 @@ def save_image_url(url: str, created_by: str | None = None) -> str:
     img_id = uuid.uuid4().hex[:12]
     with get_db() as conn:
         conn.execute(
-            'INSERT INTO images (id, url, created, created_by, source_type) VALUES (?, ?, ?, ?, ?)',
-            (img_id, url, time.time(), created_by, 'url')
-        )
-    return img_id
-
-
-def save_image_file(file_path: str, created_by: str | None = None) -> str:
-    img_id = uuid.uuid4().hex[:12]
-    with get_db() as conn:
-        conn.execute(
-            'INSERT INTO images (id, url, created, created_by, source_type) VALUES (?, ?, ?, ?, ?)',
-            (img_id, file_path, time.time(), created_by, 'file')
+            'INSERT INTO images (id, url, created, created_by) VALUES (?, ?, ?, ?)',
+            (img_id, url, time.time(), created_by)
         )
     return img_id
 
@@ -274,35 +250,21 @@ def save_video_url(url: str, created_by: str | None = None, variant: int = 1) ->
     video_id = uuid.uuid4().hex[:12]
     with get_db() as conn:
         conn.execute(
-            'INSERT INTO videos (id, url, created, created_by, variant, source_type) VALUES (?, ?, ?, ?, ?, ?)',
-            (video_id, url, time.time(), created_by, variant, 'url')
+            'INSERT INTO videos (id, url, created, created_by, variant) VALUES (?, ?, ?, ?, ?)',
+            (video_id, url, time.time(), created_by, variant)
         )
     return video_id
-
-
-def save_video_file(file_path: str, created_by: str | None = None, variant: int = 1) -> str:
-    video_id = uuid.uuid4().hex[:12]
-    with get_db() as conn:
-        conn.execute(
-            'INSERT INTO videos (id, url, created, created_by, variant, source_type) VALUES (?, ?, ?, ?, ?, ?)',
-            (video_id, file_path, time.time(), created_by, variant, 'file')
-        )
-    return video_id
-
-
-def get_image_record(img_id: str) -> sqlite3.Row | None:
-    with get_db() as conn:
-        return conn.execute('SELECT url, source_type FROM images WHERE id = ?', (img_id,)).fetchone()
 
 
 def get_image_url(img_id: str) -> str | None:
-    row = get_image_record(img_id)
+    with get_db() as conn:
+        row = conn.execute('SELECT url FROM images WHERE id = ?', (img_id,)).fetchone()
     return row['url'] if row else None
 
 
 def get_video_record(video_id: str) -> sqlite3.Row | None:
     with get_db() as conn:
-        row = conn.execute('SELECT url, variant, source_type FROM videos WHERE id = ?', (video_id,)).fetchone()
+        row = conn.execute('SELECT url, variant FROM videos WHERE id = ?', (video_id,)).fetchone()
     return row
 
 
@@ -412,45 +374,6 @@ def clamp_video_variants(value) -> int:
     return max(1, min(VIDEO_VARIANTS_MAX, variants))
 
 
-def store_uploaded_file(file_storage, target_dir: Path, allowed_ext: set, max_bytes: int) -> str:
-    """Сохраняет загруженный файл на диск с проверкой расширения и лимита размера.
-    Возвращает путь к сохранённому файлу. Бросает ValueError при недопустимом файле."""
-    original_name = secure_filename(file_storage.filename or '')
-    ext = Path(original_name).suffix.lower()
-    if ext not in allowed_ext:
-        raise ValueError(f'Недопустимый формат файла: {ext or "без расширения"}')
-
-    unique_name = f'{uuid.uuid4().hex}{ext}'
-    dest_path = target_dir / unique_name
-
-    total = 0
-    try:
-        with open(dest_path, 'wb') as out:
-            while True:
-                chunk = file_storage.stream.read(1024 * 1024)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > max_bytes:
-                    raise ValueError(f'Файл слишком большой. Лимит: {max_bytes // 1024 // 1024} MB')
-                out.write(chunk)
-    except Exception:
-        try:
-            os.unlink(dest_path)
-        except OSError:
-            pass
-        raise
-
-    if total == 0:
-        try:
-            os.unlink(dest_path)
-        except OSError:
-            pass
-        raise ValueError('Пустой файл')
-
-    return str(dest_path)
-
-
 def uniqualize_image(img: Image.Image) -> Image.Image:
     """Применяет набор лёгких случайных трансформаций к изображению."""
     img = img.copy().convert('RGB')
@@ -558,17 +481,11 @@ def load_image_from_url(url: str) -> Image.Image:
     return Image.open(io.BytesIO(data)).convert('RGB')
 
 
-def load_image_from_file(file_path: str) -> Image.Image:
-    """Загружает изображение, ранее сохранённое на диск как загруженный файл."""
-    with open(file_path, 'rb') as f:
-        data = f.read()
-    return Image.open(io.BytesIO(data)).convert('RGB')
-
-
-def load_image_source(source: str, source_type: str) -> Image.Image:
-    """Загружает изображение либо с локального диска (загруженный файл), либо по ссылке."""
-    if source_type == 'file':
-        return load_image_from_file(source)
+def load_image_from_source(source: str) -> Image.Image:
+    """Загружает изображение — из локального файла (file://) или по URL."""
+    if source.startswith('file://'):
+        file_path = source[len('file://'):]
+        return Image.open(file_path).convert('RGB')
     return load_image_from_url(source)
 
 
@@ -615,26 +532,19 @@ def download_url_to_temp(url: str, suffix: str = '.bin') -> str:
         raise
 
 
-def copy_file_to_temp(file_path: str, suffix: str = '.bin') -> str:
-    """Копирует ранее загруженный локальный файл во временный файл для обработки ffmpeg."""
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-    tmp_path = tmp.name
-    tmp.close()
-    try:
-        shutil.copyfile(file_path, tmp_path)
-        return tmp_path
-    except Exception:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
-
-
-def download_source_to_temp(source: str, source_type: str, suffix: str = '.bin') -> str:
-    """Готовит временный файл с видео либо с локального диска, либо скачиванием по ссылке."""
-    if source_type == 'file':
-        return copy_file_to_temp(source, suffix=suffix)
+def download_source_to_temp(source: str, suffix: str = '.bin') -> str:
+    """Скачивает источник (URL или file://) во временный файл."""
+    if source.startswith('file://'):
+        file_path = source[len('file://'):]
+        # Проверка размера
+        size = os.path.getsize(file_path)
+        if size > MAX_VIDEO_BYTES:
+            raise ValueError(f'Видео слишком большое. Лимит: {MAX_VIDEO_BYTES // 1024 // 1024} MB')
+        # Копируем во временный файл, чтобы ffmpeg мог его читать
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        tmp.close()
+        shutil.copy2(file_path, tmp.name)
+        return tmp.name
     return download_url_to_temp(source, suffix=suffix)
 
 
@@ -913,7 +823,6 @@ HTML = '''<!DOCTYPE html>
   .input-wrap {
     position: relative;
     display: flex;
-    flex-wrap: wrap;
     gap: 10px;
     align-items: stretch;
   }
@@ -1211,6 +1120,127 @@ HTML = '''<!DOCTYPE html>
     color: var(--text-dim);
     font-size: 12px;
   }
+
+  /* ── Tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 16px;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+
+  .tab-btn:not(.active):hover {
+    color: var(--text);
+  }
+
+  /* ── File drop zone ── */
+  .file-type-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .file-drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .file-drop-zone:hover,
+  .file-drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .drop-text {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .drop-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
+  /* ── File queue ── */
+  .file-queue {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .file-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  .file-item-name {
+    flex: 1;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-item-size {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .file-item-remove {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+
+  .file-item-remove:hover { color: var(--error); }
 </style>
 </head>
 <body>
@@ -1222,7 +1252,7 @@ HTML = '''<!DOCTYPE html>
   </div>
   <header>
     <h1>Уникализация<br><span>фото и видео</span></h1>
-    <p class="subtitle">Вставь ссылку на картинку или видео, или загрузи файл с устройства -<br>получи статическую ссылку, по которой каждый раз будет новая версия</p>
+    <p class="subtitle">Вставь ссылку на картинку или видео - получи статическую ссылку,<br>по которой каждый раз будет новая версия</p>
   </header>
 
   <!-- Stats -->
@@ -1244,57 +1274,82 @@ HTML = '''<!DOCTYPE html>
   <!-- Input card -->
   <div class="card">
     <div class="card-label">Исходник</div>
-    <div class="input-wrap">
-      <input 
-        type="text" 
-        class="url-input" 
-        id="urlInput"
-        placeholder="https://example.com/image.jpg или video.mp4"
-        autocomplete="off"
-        spellcheck="false"
-      >
-      <select class="type-select" id="mediaType" title="Тип файла">
-        <option value="image">Фото</option>
-        <option value="video">Видео</option>
-      </select>
-      <button class="btn btn-primary" id="addBtn" onclick="addSingleUrl()">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-        Добавить
-      </button>
-      <input
-        type="file"
-        id="fileInput"
-        accept="image/*,video/*"
-        multiple
-        style="display:none"
-        onchange="handleFileUpload(this.files)"
-      >
-      <button class="btn btn-ghost" id="uploadBtn" type="button" onclick="document.getElementById('fileInput').click()">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Файл
-      </button>
-    </div>
-    <div class="variants-wrap" id="variantsWrap">
-      <span>Вариантов видео</span>
-      <input class="variants-input" id="videoVariants" type="number" min="1" max="5" value="5">
-      <span>максимум 5, длина до 90 секунд</span>
+
+    <!-- Вкладки -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabUrlBtn" onclick="switchTab('url')">Ссылка</button>
+      <button class="tab-btn" id="tabFileBtn" onclick="switchTab('file')">Файл</button>
     </div>
 
-    <div class="urls-section">
-      <div class="urls-header">
-        <div class="card-label" style="margin:0">Или вставь сразу несколько ссылок</div>
-        <span class="url-count" id="urlCount">0 ссылок</span>
+    <!-- Вкладка: Ссылка -->
+    <div id="tabUrl">
+      <div class="input-wrap">
+        <input 
+          type="text" 
+          class="url-input" 
+          id="urlInput"
+          placeholder="https://example.com/image.jpg или video.mp4"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <select class="type-select" id="mediaType" title="Тип файла">
+          <option value="image">Фото</option>
+          <option value="video">Видео</option>
+        </select>
+        <button class="btn btn-primary" id="addBtn" onclick="addSingleUrl()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Добавить
+        </button>
       </div>
-      <textarea 
-        class="urls-textarea" 
-        id="urlsTextarea"
-        placeholder="Вставь несколько ссылок одного типа - каждую с новой строки..."
-        oninput="countUrls()"
-      ></textarea>
+      <div class="variants-wrap" id="variantsWrap">
+        <span>Вариантов видео</span>
+        <input class="variants-input" id="videoVariants" type="number" min="1" max="5" value="5">
+        <span>максимум 5, длина до 90 секунд</span>
+      </div>
+
+      <div class="urls-section">
+        <div class="urls-header">
+          <div class="card-label" style="margin:0">Или вставь сразу несколько ссылок</div>
+          <span class="url-count" id="urlCount">0 ссылок</span>
+        </div>
+        <textarea 
+          class="urls-textarea" 
+          id="urlsTextarea"
+          placeholder="Вставь несколько ссылок одного типа - каждую с новой строки..."
+          oninput="countUrls()"
+        ></textarea>
+        <div style="display:flex; justify-content:flex-end; margin-top:10px; gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="clearAll()">Очистить</button>
+          <button class="btn btn-primary btn-sm" id="processBtn" onclick="processBatch()">
+            Создать ссылки
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладка: Файл -->
+    <div id="tabFile" style="display:none">
+      <div class="file-type-row">
+        <select class="type-select" id="fileMediaType" title="Тип файла">
+          <option value="image">Фото</option>
+          <option value="video">Видео</option>
+        </select>
+        <div class="variants-wrap" id="fileVariantsWrap" style="display:none; margin-top:0">
+          <span>Вариантов</span>
+          <input class="variants-input" id="fileVideoVariants" type="number" min="1" max="5" value="5">
+        </div>
+      </div>
+      <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="color:var(--text-dim)"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V3M8 7l4-4 4 4"/></svg>
+        <div class="drop-text">Нажми или перетащи файл сюда</div>
+        <div class="drop-hint" id="dropHint">JPG, PNG, GIF, WebP, MP4, MOV, AVI...</div>
+      </div>
+      <input type="file" id="fileInput" style="display:none" accept="image/*,video/*" onchange="onFileSelected(this)">
+      <div id="fileQueue" class="file-queue"></div>
       <div style="display:flex; justify-content:flex-end; margin-top:10px; gap:8px">
-        <button class="btn btn-ghost btn-sm" onclick="clearAll()">Очистить</button>
-        <button class="btn btn-primary btn-sm" id="processBtn" onclick="processBatch()">
-          Создать ссылки
+        <button class="btn btn-ghost btn-sm" onclick="clearFiles()">Очистить</button>
+        <button class="btn btn-primary btn-sm" id="uploadBtn" onclick="uploadFiles()">
+          Загрузить и создать ссылки
         </button>
       </div>
     </div>
@@ -1325,9 +1380,27 @@ const BASE = window.location.origin;
 let sessionCount = 0;
 let totalCount = 0;
 let allResultUrls = [];
+let pendingFiles = [];
 
+// ── Вкладки ──────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  const isUrl = tab === 'url';
+  document.getElementById('tabUrl').style.display = isUrl ? '' : 'none';
+  document.getElementById('tabFile').style.display = isUrl ? 'none' : '';
+  document.getElementById('tabUrlBtn').classList.toggle('active', isUrl);
+  document.getElementById('tabFileBtn').classList.toggle('active', !isUrl);
+}
+
+// ── Общие утилиты ─────────────────────────────────────────────────────────────
 function getVideoVariants() {
   const input = document.getElementById('videoVariants');
+  const n = parseInt(input.value || '5', 10);
+  if (Number.isNaN(n)) return 5;
+  return Math.max(1, Math.min(5, n));
+}
+
+function getFileVideoVariants() {
+  const input = document.getElementById('fileVideoVariants');
   const n = parseInt(input.value || '5', 10);
   if (Number.isNaN(n)) return 5;
   return Math.max(1, Math.min(5, n));
@@ -1336,6 +1409,12 @@ function getVideoVariants() {
 function updateVariantsVisibility() {
   const mediaType = document.getElementById('mediaType').value;
   document.getElementById('variantsWrap').classList.toggle('show', mediaType === 'video');
+}
+
+function updateFileVariantsVisibility() {
+  const mediaType = document.getElementById('fileMediaType').value;
+  const w = document.getElementById('fileVariantsWrap');
+  w.style.display = mediaType === 'video' ? 'flex' : 'none';
 }
 
 function countUrls() {
@@ -1352,6 +1431,18 @@ function clearAll() {
   document.getElementById('urlCount').textContent = '0 ссылок';
 }
 
+// ── Авто-копирование в буфер ──────────────────────────────────────────────────
+async function autoCopyToClipboard(urls) {
+  if (!urls.length) return;
+  try {
+    await navigator.clipboard.writeText(urls.join('\\n'));
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+// ── Ссылки ────────────────────────────────────────────────────────────────────
 async function addSingleUrl() {
   const url = document.getElementById('urlInput').value.trim();
   const mediaType = document.getElementById('mediaType').value;
@@ -1374,10 +1465,15 @@ async function addSingleUrl() {
     
     if (data.success) {
       const results = data.results && data.results.length ? data.results : [data];
+      const newUrls = results.map(r => r.unique_url);
       results.forEach(r => addResultItem(r.unique_url, r.id));
       document.getElementById('urlInput').value = '';
-      await copyUrlsSequentially(results.map(r => r.unique_url));
-      showToast(results.length > 1 ? `Создано и скопировано ${results.length} ссылок` : 'Ссылка создана и скопирована');
+      
+      const copied = await autoCopyToClipboard(newUrls);
+      const msg = results.length > 1
+        ? `Создано ${results.length} вариантов${copied ? ' · скопировано' : ''}`
+        : `Ссылка создана${copied ? ' · скопирована' : ''}`;
+      showToast(msg);
       updateStats();
     } else {
       showToast(data.error || 'Ошибка', true);
@@ -1416,9 +1512,11 @@ async function processBatch() {
     const data = await res.json();
     
     if (data.success) {
+      const newUrls = data.results.map(r => r.unique_url);
       data.results.forEach(r => addResultItem(r.unique_url, r.id));
-      await copyUrlsSequentially(data.results.map(r => r.unique_url));
-      showToast(`Создано и скопировано ${data.results.length} ссылок`);
+      
+      const copied = await autoCopyToClipboard(newUrls);
+      showToast(`Создано ${data.results.length} ссылок${copied ? ' · скопировано' : ''}`);
       updateStats();
       document.getElementById('urlsTextarea').value = '';
       document.getElementById('urlCount').textContent = '0 ссылок';
@@ -1433,6 +1531,122 @@ async function processBatch() {
   btn.innerHTML = 'Создать ссылки';
 }
 
+// ── Загрузка файлов ───────────────────────────────────────────────────────────
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function onFileSelected(input) {
+  Array.from(input.files).forEach(file => {
+    if (!pendingFiles.find(f => f.name === file.name && f.size === file.size)) {
+      pendingFiles.push(file);
+    }
+  });
+  input.value = '';
+  renderFileQueue();
+}
+
+function removeFile(idx) {
+  pendingFiles.splice(idx, 1);
+  renderFileQueue();
+}
+
+function clearFiles() {
+  pendingFiles = [];
+  renderFileQueue();
+}
+
+function renderFileQueue() {
+  const container = document.getElementById('fileQueue');
+  if (!pendingFiles.length) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = pendingFiles.map((f, i) => `
+    <div class="file-item">
+      <span class="file-item-name">${f.name}</span>
+      <span class="file-item-size">${formatSize(f.size)}</span>
+      <button class="file-item-remove" onclick="removeFile(${i})" title="Удалить">×</button>
+    </div>
+  `).join('');
+}
+
+async function uploadFiles() {
+  if (!pendingFiles.length) {
+    showToast('Добавь файлы для загрузки', true);
+    return;
+  }
+
+  const mediaType = document.getElementById('fileMediaType').value;
+  const variants = getFileVideoVariants();
+  const btn = document.getElementById('uploadBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Загружаю...';
+
+  const newUrls = [];
+  let errors = 0;
+
+  for (let i = 0; i < pendingFiles.length; i++) {
+    const file = pendingFiles[i];
+    btn.innerHTML = `<div class="spinner"></div> ${i + 1}/${pendingFiles.length}...`;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', mediaType);
+    if (mediaType === 'video') formData.append('variants', variants);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        data.results.forEach(r => {
+          addResultItem(r.unique_url, r.id);
+          newUrls.push(r.unique_url);
+        });
+      } else {
+        errors++;
+        showToast(data.error || 'Ошибка загрузки', true);
+      }
+    } catch(e) {
+      errors++;
+    }
+  }
+
+  if (newUrls.length) {
+    const copied = await autoCopyToClipboard(newUrls);
+    const msg = `Загружено файлов: ${pendingFiles.length - errors}, ссылок: ${newUrls.length}${copied ? ' · скопировано' : ''}`;
+    showToast(msg);
+    updateStats();
+    pendingFiles = [];
+    renderFileQueue();
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Загрузить и создать ссылки';
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+const dropZone = document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  Array.from(e.dataTransfer.files).forEach(file => {
+    if (!pendingFiles.find(f => f.name === file.name && f.size === file.size)) {
+      pendingFiles.push(file);
+    }
+  });
+  renderFileQueue();
+});
+
+// ── Результаты ────────────────────────────────────────────────────────────────
 function addResultItem(uniqueUrl, id) {
   const section = document.getElementById('resultSection');
   const grid = document.getElementById('resultGrid');
@@ -1477,85 +1691,6 @@ function copyAll() {
   );
 }
 
-// Копирует все только что созданные ссылки в буфер одним заходом,
-// построчно и в том порядке, в котором они были созданы.
-async function copyUrlsSequentially(urls) {
-  if (!urls || !urls.length) return;
-  try {
-    await navigator.clipboard.writeText(urls.join('\\n'));
-  } catch (e) {
-    // Буфер обмена недоступен (например, нет разрешения) - можно скопировать вручную кнопками ниже.
-  }
-}
-
-async function uploadFiles(files, mediaType) {
-  const formData = new FormData();
-  files.forEach(f => formData.append('files', f));
-  formData.append('type', mediaType);
-  formData.append('variants', getVideoVariants());
-
-  try {
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.success) {
-      data.results.forEach(r => addResultItem(r.unique_url, r.id));
-      return { ok: true, urls: data.results.map(r => r.unique_url) };
-    }
-    return { ok: false, error: data.error || 'Ошибка загрузки' };
-  } catch (e) {
-    return { ok: false, error: 'Ошибка соединения' };
-  }
-}
-
-async function handleFileUpload(fileList) {
-  const files = Array.from(fileList || []);
-  if (!files.length) return;
-
-  // Определяем тип каждого файла самостоятельно - не нужно переключать селект Фото/Видео.
-  const imageFiles = [];
-  const videoFiles = [];
-  files.forEach(f => {
-    const mime = (f.type || '').toLowerCase();
-    const name = (f.name || '').toLowerCase();
-    if (mime.startsWith('video/') || /\\.(mp4|mov|avi|mkv|webm|m4v|flv)$/.test(name)) {
-      videoFiles.push(f);
-    } else {
-      imageFiles.push(f);
-    }
-  });
-
-  const btn = document.getElementById('uploadBtn');
-  const original = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Загружаю...';
-
-  let allNewUrls = [];
-  let firstError = null;
-
-  if (imageFiles.length) {
-    const r = await uploadFiles(imageFiles, 'image');
-    if (r.ok) allNewUrls = allNewUrls.concat(r.urls);
-    else if (!firstError) firstError = r.error;
-  }
-  if (videoFiles.length) {
-    const r = await uploadFiles(videoFiles, 'video');
-    if (r.ok) allNewUrls = allNewUrls.concat(r.urls);
-    else if (!firstError) firstError = r.error;
-  }
-
-  if (allNewUrls.length) {
-    await copyUrlsSequentially(allNewUrls);
-    showToast(allNewUrls.length > 1 ? `Загружено и скопировано ${allNewUrls.length} ссылок` : 'Файл загружен, ссылка скопирована');
-    updateStats();
-  } else {
-    showToast(firstError || 'Не удалось загрузить файлы', true);
-  }
-
-  btn.disabled = false;
-  btn.innerHTML = original;
-  document.getElementById('fileInput').value = '';
-}
-
 function updateStats() {
   const strip = document.getElementById('statsStrip');
   strip.style.display = 'flex';
@@ -1569,11 +1704,13 @@ function showToast(msg, isError) {
   document.getElementById('toastMsg').textContent = msg;
   dot.style.background = isError ? 'var(--error)' : 'var(--success)';
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 document.getElementById('mediaType').addEventListener('change', updateVariantsVisibility);
+document.getElementById('fileMediaType').addEventListener('change', updateFileVariantsVisibility);
 updateVariantsVisibility();
+updateFileVariantsVisibility();
 
 // Enter to submit
 document.getElementById('urlInput').addEventListener('keydown', e => {
@@ -1905,68 +2042,98 @@ def register_batch():
 
 @app.route('/api/upload', methods=['POST'])
 @login_required
-def upload_files():
-    media_type = (request.form.get('type', 'image') or 'image').strip().lower()
+def upload_file():
+    """Принимает файл (изображение или видео) и сохраняет его, возвращая готовую ссылку."""
+    user = get_current_user() or {'login': '-'}
+    media_type = request.form.get('type', 'image').strip().lower()
+    variants = clamp_video_variants(request.form.get('variants')) if media_type == 'video' else 1
+
     if media_type not in ('image', 'video'):
         return jsonify({'success': False, 'error': 'Некорректный тип файла'})
 
-    files = [f for f in request.files.getlist('files') if f and f.filename]
-    if not files:
-        return jsonify({'success': False, 'error': 'Нет файлов'})
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'Файл не передан'})
 
-    variants = clamp_video_variants(request.form.get('variants')) if media_type == 'video' else 1
-    user = get_current_user() or {'login': '-'}
+    f = request.files['file']
+    if not f or not f.filename:
+        return jsonify({'success': False, 'error': 'Файл пустой'})
+
+    # Определяем расширение
+    filename = f.filename
+    ext = os.path.splitext(filename)[1].lower() if '.' in filename else ''
+
+    # Проверяем допустимые расширения
+    image_exts = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif'}
+    video_exts = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v', '.flv', '.wmv', '.ts', '.mts'}
+
+    if media_type == 'image' and ext not in image_exts:
+        return jsonify({'success': False, 'error': f'Недопустимый формат изображения: {ext or "(без расширения)"}'})
+    if media_type == 'video' and ext not in video_exts:
+        return jsonify({'success': False, 'error': f'Недопустимый формат видео: {ext or "(без расширения)"}'})
+
+    # Сохраняем файл
+    file_id = uuid.uuid4().hex
+    saved_path = UPLOADS_DIR / f'{file_id}{ext}'
+
+    try:
+        f.save(str(saved_path))
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Ошибка сохранения файла: {str(e)}'})
+
+    # Проверяем размер для видео
+    if media_type == 'video':
+        size = os.path.getsize(str(saved_path))
+        if size > MAX_VIDEO_BYTES:
+            saved_path.unlink(missing_ok=True)
+            return jsonify({'success': False, 'error': f'Видео слишком большое. Лимит: {MAX_VIDEO_BYTES // 1024 // 1024} MB'})
+
+    # Сохраняем в БД как file://
+    source_ref = f'file://{saved_path}'
     base_url = request.host_url.rstrip('/')
-    source_limit = 5 if media_type == 'video' else 50
-
     results = []
-    errors = []
 
-    for file_storage in files[:source_limit]:
-        try:
-            if media_type == 'video':
-                stored_path = store_uploaded_file(file_storage, UPLOAD_VIDEO_DIR, ALLOWED_VIDEO_EXT, MAX_VIDEO_BYTES)
-                for variant in range(1, variants + 1):
-                    media_id = save_video_file(stored_path, user['login'], variant=variant)
-                    results.append({
-                        'id': media_id,
-                        'type': media_type,
-                        'variant': variant,
-                        'unique_url': f"{base_url}/video/{media_id}",
-                        'source_url': f'файл: {file_storage.filename}'
-                    })
-            else:
-                stored_path = store_uploaded_file(file_storage, UPLOAD_IMAGE_DIR, ALLOWED_IMAGE_EXT, MAX_IMAGE_UPLOAD_BYTES)
-                media_id = save_image_file(stored_path, user['login'])
-                results.append({
-                    'id': media_id,
-                    'type': media_type,
-                    'variant': 1,
-                    'unique_url': f"{base_url}/img/{media_id}",
-                    'source_url': f'файл: {file_storage.filename}'
-                })
-        except ValueError as e:
-            errors.append(f'{file_storage.filename}: {e}')
-        except Exception as e:
-            errors.append(f'{file_storage.filename}: {e}')
+    if media_type == 'video':
+        for variant in range(1, variants + 1):
+            media_id = save_video_url(source_ref, user['login'], variant=variant)
+            results.append({
+                'id': media_id,
+                'type': media_type,
+                'variant': variant,
+                'unique_url': f"{base_url}/video/{media_id}",
+                'source_url': filename,
+            })
+        log_action('video_uploaded', f'{variants} variant(s): {filename}')
+    else:
+        media_id = save_image_url(source_ref, user['login'])
+        results.append({
+            'id': media_id,
+            'type': media_type,
+            'variant': 1,
+            'unique_url': f"{base_url}/img/{media_id}",
+            'source_url': filename,
+        })
+        log_action('image_uploaded', filename)
 
-    if not results:
-        return jsonify({'success': False, 'error': errors[0] if errors else 'Не удалось загрузить файлы'})
-
-    log_action(f'{media_type}_uploaded', f'{len(results)} link(s) from {len(files[:source_limit])} file(s)')
-    return jsonify({'success': True, 'results': results, 'errors': errors})
+    first = results[0]
+    return jsonify({
+        'success': True,
+        'id': first['id'],
+        'type': media_type,
+        'unique_url': first['unique_url'],
+        'results': results,
+    })
 
 
 @app.route('/img/<img_id>')
 def serve_image(img_id):
     if not PUBLIC_MEDIA_LINKS and not get_current_user():
         return redirect(url_for('login', next=request.path))
-    record = get_image_record(img_id)
-    if not record:
+    source_url = get_image_url(img_id)
+    if not source_url:
         return 'Not found', 404
     
     try:
-        img = load_image_source(record['url'], record['source_type'])
+        img = load_image_from_source(source_url)
         img = uniqualize_image(img)
         
         buf = io.BytesIO()
@@ -1991,14 +2158,13 @@ def serve_video(video_id):
     if not record:
         return 'Not found', 404
     source_url = record['url']
-    source_type = record['source_type']
     variant = int(record['variant'] or 1)
 
     input_path = None
     output_path = None
 
     try:
-        input_path = download_source_to_temp(source_url, source_type, suffix='.video')
+        input_path = download_source_to_temp(source_url, suffix='.video')
         duration = get_video_duration_seconds(input_path)
         if duration is not None and duration > VIDEO_MAX_SECONDS:
             raise ValueError(f'Видео длиннее лимита: максимум {VIDEO_MAX_SECONDS} секунд')
@@ -2056,7 +2222,6 @@ def stats():
         'total_registered': count_registered(),
         'storage': str(DB_PATH),
         'max_video_mb': MAX_VIDEO_BYTES // 1024 // 1024,
-        'max_image_upload_mb': MAX_IMAGE_UPLOAD_BYTES // 1024 // 1024,
         'video_timeout_seconds': VIDEO_TIMEOUT,
         'video_max_seconds': VIDEO_MAX_SECONDS,
         'video_variants_default': VIDEO_VARIANTS_DEFAULT,
