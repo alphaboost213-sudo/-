@@ -1277,22 +1277,6 @@ HTML = '''<!DOCTYPE html>
     <p class="subtitle">Вставь ссылку на картинку или видео - получи статическую ссылку,<br>по которой каждый раз будет новая версия</p>
   </header>
 
-  <!-- Stats -->
-  <div class="stats-strip" id="statsStrip" style="display:none">
-    <div class="stat-item">
-      <span class="stat-num" id="statTotal">0</span>
-      <div class="stat-label">Ссылок создано</div>
-    </div>
-    <div class="stat-item">
-      <span class="stat-num" id="statSession">0</span>
-      <div class="stat-label">В этой сессии</div>
-    </div>
-    <div class="stat-item">
-      <span class="stat-num" id="statRendered">∞</span>
-      <div class="stat-label">Рендеров на ссылку</div>
-    </div>
-  </div>
-
   <!-- Input card -->
   <div class="card">
     <div class="card-label">Исходник</div>
@@ -1377,19 +1361,6 @@ HTML = '''<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Results -->
-  <div class="result-section" id="resultSection">
-    <div class="result-divider">Готовые ссылки</div>
-    <div class="result-grid" id="resultGrid"></div>
-    <div class="copy-all-bar" id="copyAllBar">
-      <button class="btn btn-ghost btn-sm" onclick="copyAll()">
-        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        Скопировать все
-      </button>
-    </div>
-  </div>
-
-</div>
 
 
 <div class="toast" id="toast">
@@ -1399,9 +1370,6 @@ HTML = '''<!DOCTYPE html>
 
 <script>
 const BASE = window.location.origin;
-let sessionCount = 0;
-let totalCount = 0;
-let allResultUrls = [];
 let pendingFiles = [];
 
 // ── Вкладки ──────────────────────────────────────────────────────────────────
@@ -1488,7 +1456,6 @@ async function addSingleUrl() {
     if (data.success) {
       const results = data.results && data.results.length ? data.results : [data];
       const newUrls = results.map(r => r.unique_url);
-      results.forEach(r => addResultItem(r.unique_url, r.id));
       document.getElementById('urlInput').value = '';
       
       const copied = await autoCopyToClipboard(newUrls);
@@ -1496,7 +1463,6 @@ async function addSingleUrl() {
         ? `Создано ${results.length} вариантов${copied ? ' · скопировано' : ''}`
         : `Ссылка создана${copied ? ' · скопирована' : ''}`;
       showToast(msg);
-      updateStats();
     } else {
       showToast(data.error || 'Ошибка', true);
     }
@@ -1535,11 +1501,9 @@ async function processBatch() {
     
     if (data.success) {
       const newUrls = data.results.map(r => r.unique_url);
-      data.results.forEach(r => addResultItem(r.unique_url, r.id));
       
       const copied = await autoCopyToClipboard(newUrls);
       showToast(`Создано ${data.results.length} ссылок${copied ? ' · скопировано' : ''}`);
-      updateStats();
       document.getElementById('urlsTextarea').value = '';
       document.getElementById('urlCount').textContent = '0 ссылок';
     } else {
@@ -1623,10 +1587,7 @@ async function uploadFiles() {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
       if (data.success) {
-        data.results.forEach(r => {
-          addResultItem(r.unique_url, r.id);
-          newUrls.push(r.unique_url);
-        });
+        data.results.forEach(r => newUrls.push(r.unique_url));
       } else {
         errors++;
         showToast(data.error || 'Ошибка загрузки', true);
@@ -1640,7 +1601,6 @@ async function uploadFiles() {
     const copied = await autoCopyToClipboard(newUrls);
     const msg = `Загружено файлов: ${pendingFiles.length - errors}, ссылок: ${newUrls.length}${copied ? ' · скопировано' : ''}`;
     showToast(msg);
-    updateStats();
     pendingFiles = [];
     renderFileQueue();
   }
@@ -1667,58 +1627,6 @@ dropZone.addEventListener('drop', e => {
   });
   renderFileQueue();
 });
-
-// ── Результаты ────────────────────────────────────────────────────────────────
-function addResultItem(uniqueUrl, id) {
-  const section = document.getElementById('resultSection');
-  const grid = document.getElementById('resultGrid');
-  
-  section.classList.add('show');
-  document.getElementById('copyAllBar').classList.add('show');
-  
-  allResultUrls.push(uniqueUrl);
-  sessionCount++;
-  totalCount++;
-
-  const idx = allResultUrls.length;
-  
-  const item = document.createElement('div');
-  item.className = 'result-item';
-  item.innerHTML = `
-    <span class="result-num">${String(idx).padStart(2,'0')}</span>
-    <span class="result-url">${uniqueUrl}</span>
-    <div class="result-actions">
-      <button class="btn btn-ghost btn-sm" onclick="copyUrl('${uniqueUrl}')">
-        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        Копировать
-      </button>
-      <a class="btn btn-ghost btn-sm" href="${uniqueUrl}" target="_blank">
-        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Открыть
-      </a>
-    </div>
-  `;
-  grid.appendChild(item);
-  
-  updateStats();
-}
-
-function copyUrl(url) {
-  navigator.clipboard.writeText(url).then(() => showToast('Скопировано'));
-}
-
-function copyAll() {
-  navigator.clipboard.writeText(allResultUrls.join('\\n')).then(() => 
-    showToast(`Скопировано ${allResultUrls.length} ссылок`)
-  );
-}
-
-function updateStats() {
-  const strip = document.getElementById('statsStrip');
-  strip.style.display = 'flex';
-  document.getElementById('statTotal').textContent = totalCount;
-  document.getElementById('statSession').textContent = sessionCount;
-}
 
 function showToast(msg, isError) {
   const t = document.getElementById('toast');
