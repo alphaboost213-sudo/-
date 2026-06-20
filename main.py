@@ -3,6 +3,7 @@ import io
 import uuid
 import time
 import random
+import shutil
 import sqlite3
 import urllib.request
 import subprocess
@@ -17,6 +18,7 @@ from flask import Flask, request, jsonify, send_file, render_template_string, af
 from flask_cors import CORS
 from PIL import Image, ImageFilter, ImageEnhance
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import numpy as np
 
 app = Flask(__name__)
@@ -30,6 +32,13 @@ if not DATA_DIR.exists():
     DATA_DIR = Path('.')
 
 DB_PATH = DATA_DIR / 'imguniq.sqlite3'
+
+# Папки для хранения оригиналов, загруженных как файл (а не по ссылке).
+UPLOAD_DIR = DATA_DIR / 'uploads'
+UPLOAD_IMAGE_DIR = UPLOAD_DIR / 'images'
+UPLOAD_VIDEO_DIR = UPLOAD_DIR / 'videos'
+UPLOAD_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+UPLOAD_VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_or_create_secret_key() -> str:
@@ -67,6 +76,14 @@ PUBLIC_MEDIA_LINKS = os.environ.get('PUBLIC_MEDIA_LINKS', '1').lower() not in ('
 VIDEO_VARIANTS_DEFAULT = int(os.environ.get('VIDEO_VARIANTS_DEFAULT', 5))
 VIDEO_VARIANTS_MAX = int(os.environ.get('VIDEO_VARIANTS_MAX', 5))
 VIDEO_MAX_SECONDS = int(os.environ.get('VIDEO_MAX_SECONDS', 90))
+
+# ─── Загрузка файлов с устройства (не по ссылке) ──────────────────────────────
+MAX_IMAGE_UPLOAD_BYTES = int(os.environ.get('MAX_IMAGE_UPLOAD_BYTES', 25 * 1024 * 1024))
+UPLOAD_MAX_TOTAL_BYTES = int(os.environ.get('UPLOAD_MAX_TOTAL_BYTES', 300 * 1024 * 1024))
+app.config['MAX_CONTENT_LENGTH'] = UPLOAD_MAX_TOTAL_BYTES
+
+ALLOWED_IMAGE_EXT = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif', '.tiff'}
+ALLOWED_VIDEO_EXT = {'.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v', '.flv'}
 
 # Optional outbound proxy for original media links.
 # Example: SOURCE_PROXY_URL=http://user:password@gate.vpn:8080
@@ -168,6 +185,8 @@ def init_db():
         ensure_column(conn, 'images', 'created_by', 'TEXT')
         ensure_column(conn, 'videos', 'created_by', 'TEXT')
         ensure_column(conn, 'videos', 'variant', 'INTEGER NOT NULL DEFAULT 1')
+        ensure_column(conn, 'images', 'source_type', "TEXT NOT NULL DEFAULT 'url'")
+        ensure_column(conn, 'videos', 'source_type', "TEXT NOT NULL DEFAULT 'url'")
 
         admin_password = get_or_create_bootstrap_admin_password()
         existing = conn.execute('SELECT id FROM users WHERE login = ?', (ADMIN_LOGIN,)).fetchone()
@@ -235,8 +254,18 @@ def save_image_url(url: str, created_by: str | None = None) -> str:
     img_id = uuid.uuid4().hex[:12]
     with get_db() as conn:
         conn.execute(
-            'INSERT INTO images (id, url, created, created_by) VALUES (?, ?, ?, ?)',
-            (img_id, url, time.time(), created_by)
+            'INSERT INTO images (id, url, created, created_by, source_type) VALUES (?, ?, ?, ?, ?)',
+            (img_id, url, time.time(), created_by, 'url')
+        )
+    return img_id
+
+
+def save_image_file(file_path: str, created_by: str | None = None) -> str:
+    img_id = uuid.uuid4().hex[:12]
+    with get_db() as conn:
+        conn.execute(
+            'INSERT INTO images (id, url, created, created_by, source_type) VALUES (?, ?, ?, ?, ?)',
+            (img_id, file_path, time.time(), created_by, 'file')
         )
     return img_id
 
@@ -245,21 +274,35 @@ def save_video_url(url: str, created_by: str | None = None, variant: int = 1) ->
     video_id = uuid.uuid4().hex[:12]
     with get_db() as conn:
         conn.execute(
-            'INSERT INTO videos (id, url, created, created_by, variant) VALUES (?, ?, ?, ?, ?)',
-            (video_id, url, time.time(), created_by, variant)
+            'INSERT INTO videos (id, url, created, created_by, variant, source_type) VALUES (?, ?, ?, ?, ?, ?)',
+            (video_id, url, time.time(), created_by, variant, 'url')
         )
     return video_id
 
 
-def get_image_url(img_id: str) -> str | None:
+def save_video_file(file_path: str, created_by: str | None = None, variant: int = 1) -> str:
+    video_id = uuid.uuid4().hex[:12]
     with get_db() as conn:
-        row = conn.execute('SELECT url FROM images WHERE id = ?', (img_id,)).fetchone()
+        conn.execute(
+            'INSERT INTO videos (id, url, created, created_by, variant, source_type) VALUES (?, ?, ?, ?, ?, ?)',
+            (video_id, file_path, time.time(), created_by, variant, 'file')
+        )
+    return video_id
+
+
+def get_image_record(img_id: str) -> sqlite3.Row | None:
+    with get_db() as conn:
+        return conn.execute('SELECT url, source_type FROM images WHERE id = ?', (img_id,)).fetchone()
+
+
+def get_image_url(img_id: str) -> str | None:
+    row = get_image_record(img_id)
     return row['url'] if row else None
 
 
 def get_video_record(video_id: str) -> sqlite3.Row | None:
     with get_db() as conn:
-        row = conn.execute('SELECT url, variant FROM videos WHERE id = ?', (video_id,)).fetchone()
+        row = conn.execute('SELECT url, variant, source_type FROM videos WHERE id = ?', (video_id,)).fetchone()
     return row
 
 
@@ -369,6 +412,45 @@ def clamp_video_variants(value) -> int:
     return max(1, min(VIDEO_VARIANTS_MAX, variants))
 
 
+def store_uploaded_file(file_storage, target_dir: Path, allowed_ext: set, max_bytes: int) -> str:
+    """Сохраняет загруженный файл на диск с проверкой расширения и лимита размера.
+    Возвращает путь к сохранённому файлу. Бросает ValueError при недопустимом файле."""
+    original_name = secure_filename(file_storage.filename or '')
+    ext = Path(original_name).suffix.lower()
+    if ext not in allowed_ext:
+        raise ValueError(f'Недопустимый формат файла: {ext or "без расширения"}')
+
+    unique_name = f'{uuid.uuid4().hex}{ext}'
+    dest_path = target_dir / unique_name
+
+    total = 0
+    try:
+        with open(dest_path, 'wb') as out:
+            while True:
+                chunk = file_storage.stream.read(1024 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > max_bytes:
+                    raise ValueError(f'Файл слишком большой. Лимит: {max_bytes // 1024 // 1024} MB')
+                out.write(chunk)
+    except Exception:
+        try:
+            os.unlink(dest_path)
+        except OSError:
+            pass
+        raise
+
+    if total == 0:
+        try:
+            os.unlink(dest_path)
+        except OSError:
+            pass
+        raise ValueError('Пустой файл')
+
+    return str(dest_path)
+
+
 def uniqualize_image(img: Image.Image) -> Image.Image:
     """Применяет набор лёгких случайных трансформаций к изображению."""
     img = img.copy().convert('RGB')
@@ -476,6 +558,20 @@ def load_image_from_url(url: str) -> Image.Image:
     return Image.open(io.BytesIO(data)).convert('RGB')
 
 
+def load_image_from_file(file_path: str) -> Image.Image:
+    """Загружает изображение, ранее сохранённое на диск как загруженный файл."""
+    with open(file_path, 'rb') as f:
+        data = f.read()
+    return Image.open(io.BytesIO(data)).convert('RGB')
+
+
+def load_image_source(source: str, source_type: str) -> Image.Image:
+    """Загружает изображение либо с локального диска (загруженный файл), либо по ссылке."""
+    if source_type == 'file':
+        return load_image_from_file(source)
+    return load_image_from_url(source)
+
+
 MAX_VIDEO_BYTES = int(os.environ.get('MAX_VIDEO_BYTES', 80 * 1024 * 1024))
 VIDEO_TIMEOUT = int(os.environ.get('VIDEO_TIMEOUT', 180))
 
@@ -517,6 +613,29 @@ def download_url_to_temp(url: str, suffix: str = '.bin') -> str:
         except OSError:
             pass
         raise
+
+
+def copy_file_to_temp(file_path: str, suffix: str = '.bin') -> str:
+    """Копирует ранее загруженный локальный файл во временный файл для обработки ffmpeg."""
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    tmp_path = tmp.name
+    tmp.close()
+    try:
+        shutil.copyfile(file_path, tmp_path)
+        return tmp_path
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
+def download_source_to_temp(source: str, source_type: str, suffix: str = '.bin') -> str:
+    """Готовит временный файл с видео либо с локального диска, либо скачиванием по ссылке."""
+    if source_type == 'file':
+        return copy_file_to_temp(source, suffix=suffix)
+    return download_url_to_temp(source, suffix=suffix)
 
 
 def parse_ffmpeg_duration(stderr: str) -> float | None:
@@ -794,6 +913,7 @@ HTML = '''<!DOCTYPE html>
   .input-wrap {
     position: relative;
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: stretch;
   }
@@ -1102,7 +1222,7 @@ HTML = '''<!DOCTYPE html>
   </div>
   <header>
     <h1>Уникализация<br><span>фото и видео</span></h1>
-    <p class="subtitle">Вставь ссылку на картинку или видео - получи статическую ссылку,<br>по которой каждый раз будет новая версия</p>
+    <p class="subtitle">Вставь ссылку на картинку или видео, или загрузи файл с устройства -<br>получи статическую ссылку, по которой каждый раз будет новая версия</p>
   </header>
 
   <!-- Stats -->
@@ -1140,6 +1260,18 @@ HTML = '''<!DOCTYPE html>
       <button class="btn btn-primary" id="addBtn" onclick="addSingleUrl()">
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
         Добавить
+      </button>
+      <input
+        type="file"
+        id="fileInput"
+        accept="image/*,video/*"
+        multiple
+        style="display:none"
+        onchange="handleFileUpload(this.files)"
+      >
+      <button class="btn btn-ghost" id="uploadBtn" type="button" onclick="document.getElementById('fileInput').click()">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Файл
       </button>
     </div>
     <div class="variants-wrap" id="variantsWrap">
@@ -1244,7 +1376,8 @@ async function addSingleUrl() {
       const results = data.results && data.results.length ? data.results : [data];
       results.forEach(r => addResultItem(r.unique_url, r.id));
       document.getElementById('urlInput').value = '';
-      showToast(results.length > 1 ? `Создано ${results.length} вариантов` : 'Ссылка создана');
+      await copyUrlsSequentially(results.map(r => r.unique_url));
+      showToast(results.length > 1 ? `Создано и скопировано ${results.length} ссылок` : 'Ссылка создана и скопирована');
       updateStats();
     } else {
       showToast(data.error || 'Ошибка', true);
@@ -1284,7 +1417,8 @@ async function processBatch() {
     
     if (data.success) {
       data.results.forEach(r => addResultItem(r.unique_url, r.id));
-      showToast(`Создано ${data.results.length} ссылок`);
+      await copyUrlsSequentially(data.results.map(r => r.unique_url));
+      showToast(`Создано и скопировано ${data.results.length} ссылок`);
       updateStats();
       document.getElementById('urlsTextarea').value = '';
       document.getElementById('urlCount').textContent = '0 ссылок';
@@ -1341,6 +1475,85 @@ function copyAll() {
   navigator.clipboard.writeText(allResultUrls.join('\\n')).then(() => 
     showToast(`Скопировано ${allResultUrls.length} ссылок`)
   );
+}
+
+// Копирует все только что созданные ссылки в буфер одним заходом,
+// построчно и в том порядке, в котором они были созданы.
+async function copyUrlsSequentially(urls) {
+  if (!urls || !urls.length) return;
+  try {
+    await navigator.clipboard.writeText(urls.join('\\n'));
+  } catch (e) {
+    // Буфер обмена недоступен (например, нет разрешения) - можно скопировать вручную кнопками ниже.
+  }
+}
+
+async function uploadFiles(files, mediaType) {
+  const formData = new FormData();
+  files.forEach(f => formData.append('files', f));
+  formData.append('type', mediaType);
+  formData.append('variants', getVideoVariants());
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      data.results.forEach(r => addResultItem(r.unique_url, r.id));
+      return { ok: true, urls: data.results.map(r => r.unique_url) };
+    }
+    return { ok: false, error: data.error || 'Ошибка загрузки' };
+  } catch (e) {
+    return { ok: false, error: 'Ошибка соединения' };
+  }
+}
+
+async function handleFileUpload(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+
+  // Определяем тип каждого файла самостоятельно - не нужно переключать селект Фото/Видео.
+  const imageFiles = [];
+  const videoFiles = [];
+  files.forEach(f => {
+    const mime = (f.type || '').toLowerCase();
+    const name = (f.name || '').toLowerCase();
+    if (mime.startsWith('video/') || /\\.(mp4|mov|avi|mkv|webm|m4v|flv)$/.test(name)) {
+      videoFiles.push(f);
+    } else {
+      imageFiles.push(f);
+    }
+  });
+
+  const btn = document.getElementById('uploadBtn');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Загружаю...';
+
+  let allNewUrls = [];
+  let firstError = null;
+
+  if (imageFiles.length) {
+    const r = await uploadFiles(imageFiles, 'image');
+    if (r.ok) allNewUrls = allNewUrls.concat(r.urls);
+    else if (!firstError) firstError = r.error;
+  }
+  if (videoFiles.length) {
+    const r = await uploadFiles(videoFiles, 'video');
+    if (r.ok) allNewUrls = allNewUrls.concat(r.urls);
+    else if (!firstError) firstError = r.error;
+  }
+
+  if (allNewUrls.length) {
+    await copyUrlsSequentially(allNewUrls);
+    showToast(allNewUrls.length > 1 ? `Загружено и скопировано ${allNewUrls.length} ссылок` : 'Файл загружен, ссылка скопирована');
+    updateStats();
+  } else {
+    showToast(firstError || 'Не удалось загрузить файлы', true);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = original;
+  document.getElementById('fileInput').value = '';
 }
 
 function updateStats() {
@@ -1690,16 +1903,70 @@ def register_batch():
     return jsonify({'success': True, 'results': results})
 
 
+@app.route('/api/upload', methods=['POST'])
+@login_required
+def upload_files():
+    media_type = (request.form.get('type', 'image') or 'image').strip().lower()
+    if media_type not in ('image', 'video'):
+        return jsonify({'success': False, 'error': 'Некорректный тип файла'})
+
+    files = [f for f in request.files.getlist('files') if f and f.filename]
+    if not files:
+        return jsonify({'success': False, 'error': 'Нет файлов'})
+
+    variants = clamp_video_variants(request.form.get('variants')) if media_type == 'video' else 1
+    user = get_current_user() or {'login': '-'}
+    base_url = request.host_url.rstrip('/')
+    source_limit = 5 if media_type == 'video' else 50
+
+    results = []
+    errors = []
+
+    for file_storage in files[:source_limit]:
+        try:
+            if media_type == 'video':
+                stored_path = store_uploaded_file(file_storage, UPLOAD_VIDEO_DIR, ALLOWED_VIDEO_EXT, MAX_VIDEO_BYTES)
+                for variant in range(1, variants + 1):
+                    media_id = save_video_file(stored_path, user['login'], variant=variant)
+                    results.append({
+                        'id': media_id,
+                        'type': media_type,
+                        'variant': variant,
+                        'unique_url': f"{base_url}/video/{media_id}",
+                        'source_url': f'файл: {file_storage.filename}'
+                    })
+            else:
+                stored_path = store_uploaded_file(file_storage, UPLOAD_IMAGE_DIR, ALLOWED_IMAGE_EXT, MAX_IMAGE_UPLOAD_BYTES)
+                media_id = save_image_file(stored_path, user['login'])
+                results.append({
+                    'id': media_id,
+                    'type': media_type,
+                    'variant': 1,
+                    'unique_url': f"{base_url}/img/{media_id}",
+                    'source_url': f'файл: {file_storage.filename}'
+                })
+        except ValueError as e:
+            errors.append(f'{file_storage.filename}: {e}')
+        except Exception as e:
+            errors.append(f'{file_storage.filename}: {e}')
+
+    if not results:
+        return jsonify({'success': False, 'error': errors[0] if errors else 'Не удалось загрузить файлы'})
+
+    log_action(f'{media_type}_uploaded', f'{len(results)} link(s) from {len(files[:source_limit])} file(s)')
+    return jsonify({'success': True, 'results': results, 'errors': errors})
+
+
 @app.route('/img/<img_id>')
 def serve_image(img_id):
     if not PUBLIC_MEDIA_LINKS and not get_current_user():
         return redirect(url_for('login', next=request.path))
-    source_url = get_image_url(img_id)
-    if not source_url:
+    record = get_image_record(img_id)
+    if not record:
         return 'Not found', 404
     
     try:
-        img = load_image_from_url(source_url)
+        img = load_image_source(record['url'], record['source_type'])
         img = uniqualize_image(img)
         
         buf = io.BytesIO()
@@ -1724,13 +1991,14 @@ def serve_video(video_id):
     if not record:
         return 'Not found', 404
     source_url = record['url']
+    source_type = record['source_type']
     variant = int(record['variant'] or 1)
 
     input_path = None
     output_path = None
 
     try:
-        input_path = download_url_to_temp(source_url, suffix='.video')
+        input_path = download_source_to_temp(source_url, source_type, suffix='.video')
         duration = get_video_duration_seconds(input_path)
         if duration is not None and duration > VIDEO_MAX_SECONDS:
             raise ValueError(f'Видео длиннее лимита: максимум {VIDEO_MAX_SECONDS} секунд')
@@ -1788,6 +2056,7 @@ def stats():
         'total_registered': count_registered(),
         'storage': str(DB_PATH),
         'max_video_mb': MAX_VIDEO_BYTES // 1024 // 1024,
+        'max_image_upload_mb': MAX_IMAGE_UPLOAD_BYTES // 1024 // 1024,
         'video_timeout_seconds': VIDEO_TIMEOUT,
         'video_max_seconds': VIDEO_MAX_SECONDS,
         'video_variants_default': VIDEO_VARIANTS_DEFAULT,
