@@ -282,6 +282,14 @@ def count_registered() -> int:
 
 init_db()
 
+# Диагностика ffmpeg при старте
+_ffmpeg_path = get_ffmpeg_exe()
+if os.path.isfile(_ffmpeg_path) or shutil.which(_ffmpeg_path):
+    print(f'ImgUniq ffmpeg: {_ffmpeg_path}')
+else:
+    print(f'ImgUniq WARNING: ffmpeg не найден (путь: {_ffmpeg_path}). Видео не будет работать.')
+    print('  Установите: apt-get install ffmpeg  или  pip install imageio-ffmpeg')
+
 def normalize_login(login: str) -> str:
     return (login or '').strip().lower()
 
@@ -494,12 +502,34 @@ VIDEO_TIMEOUT = int(os.environ.get('VIDEO_TIMEOUT', 180))
 
 
 def get_ffmpeg_exe() -> str:
-    """Возвращает путь к ffmpeg. На Railway его принесёт imageio-ffmpeg."""
+    """Возвращает путь к ffmpeg. Перебирает несколько источников."""
+    # 1. Явная переменная окружения
+    env_path = os.environ.get('FFMPEG_BINARY', '').strip()
+    if env_path and os.path.isfile(env_path):
+        return env_path
+
+    # 2. imageio-ffmpeg (поставляет бинарник вместе с пакетом)
     try:
         import imageio_ffmpeg
-        return imageio_ffmpeg.get_ffmpeg_exe()
+        path = imageio_ffmpeg.get_ffmpeg_exe()
+        if path and os.path.isfile(path):
+            return path
     except Exception:
-        return os.environ.get('FFMPEG_BINARY', 'ffmpeg')
+        pass
+
+    # 3. Поиск в PATH через shutil.which
+    for name in ('ffmpeg', 'ffmpeg.exe'):
+        found = shutil.which(name)
+        if found:
+            return found
+
+    # 4. Типичные системные пути
+    for candidate in ('/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/opt/homebrew/bin/ffmpeg'):
+        if os.path.isfile(candidate):
+            return candidate
+
+    # 5. Ничего не нашли — вернём 'ffmpeg' и пусть падает с понятной ошибкой
+    return 'ffmpeg'
 
 
 def download_url_to_temp(url: str, suffix: str = '.bin') -> str:
