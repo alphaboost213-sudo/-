@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SpinReplacer - замена данных в спинах</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0e0e11;
+  --surface: #16161a;
+  --surface2: #1e1e24;
+  --surface3: #26262e;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #c8f135;
+  --accent2: #a8d420;
+  --text: #f0f0f0;
+  --muted: #888896;
+  --muted2: #555566;
+  --danger: #ff5f5f;
+  --success: #5fdb8a;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+body.light {
+  --bg: #f4f4f6;
+  --surface: #ffffff;
+  --surface2: #f0f0f4;
+  --surface3: #e4e4ec;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.15);
+  --text: #1a1a2e;
+  --muted: #666677;
+  --muted2: #aaaabc;
+  --danger: #e53e3e;
+  --success: #2f855a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+/* LAYOUT */
+.app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 28px 0;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.logo {
+  padding: 0 24px 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.logo-mark {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.logo-mark span { color: var(--accent); }
+.logo-sub { font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+.nav-section { padding: 0 16px; margin-bottom: 8px; }
+.nav-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted2); padding: 0 8px; margin-bottom: 6px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+  transition: all 0.15s;
+  position: relative;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--surface2); color: var(--text); }
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 18px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+.nav-icon { width: 18px; height: 18px; opacity: 0.7; flex-shrink: 0; }
+.nav-item.active .nav-icon { opacity: 1; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 20px 24px 0;
+  border-top: 1px solid var(--border);
+}
+.version { font-size: 11px; color: var(--muted2); }
+
+/* MAIN */
+.main { padding: 40px 48px; overflow-y: auto; }
+.page { display: none; }
+.page.active { display: block; }
+
+.page-header { margin-bottom: 32px; }
+.page-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.page-title span { color: var(--accent); }
+.page-desc { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* GRID */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* FORM FIELDS */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; color: var(--muted); letter-spacing: 0.03em; }
+input[type=text], textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  padding: 10px 14px;
+  transition: border-color 0.15s;
+  outline: none;
+  width: 100%;
+}
+input[type=text]:focus, textarea:focus { border-color: var(--border2); }
+input[type=text]::placeholder, textarea::placeholder { color: var(--muted2); }
+textarea { resize: vertical; min-height: 60px; line-height: 1.6; }
+
+/* CATEGORY PILLS */
+.cat-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.cat-pill {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  transition: all 0.15s;
+  user-select: none;
+}
+.cat-pill:hover { border-color: var(--border2); color: var(--text); }
+.cat-pill.active {
+  border-color: var(--accent);
+  background: rgba(200, 241, 53, 0.08);
+  color: var(--accent);
+}
+.cat-pill svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+.products-list {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  min-height: 44px;
+  align-items: center;
+}
+.prod-tag {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.prod-tag.active-tag {
+  background: rgba(200,241,53,0.1);
+  border-color: rgba(200,241,53,0.3);
+  color: var(--accent);
+}
+.empty-hint { font-size: 12px; color: var(--muted2); }
+
+/* BUTTONS */
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--surface3); border-color: var(--border2); }
+.btn-primary {
+  background: var(--accent);
+  color: #0e0e11;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* RESULT */
+.result-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 140px;
+  max-height: 500px;
+  overflow-y: auto;
+  font-family: 'Inter', sans-serif;
+}
+.result-placeholder { color: var(--muted2); font-style: italic; }
+
+.stats-row { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.stat-chip {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+}
+.stat-num { color: var(--accent); font-weight: 600; font-size: 13px; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  font-size: 13px;
+  color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+
+/* HELP PAGE */
+.help-block { margin-bottom: 24px; }
+.help-block h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+.help-block p { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 8px; }
+.step-list { counter-reset: steps; display: flex; flex-direction: column; gap: 12px; }
+.step {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+}
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(200,241,53,0.15);
+  border: 1px solid rgba(200,241,53,0.3);
+  color: var(--accent);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.step-text { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.step-text strong { color: var(--text); font-weight: 500; }
+
+/* DIVIDER */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* NOTIFICATION badge */
+.gender-toggle {
+  display: flex;
+  gap: 8px;
+}
+.gender-opt {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+  transition: all 0.15s;
+  user-select: none;
+}
+.gender-opt:hover { border-color: var(--border2); color: var(--text); }
+.gender-opt.active {
+  border-color: var(--accent);
+  background: rgba(200,241,53,0.08);
+  color: var(--accent);
+}
+.badge {
+  display: inline-block;
+  background: var(--accent);
+  color: #0e0e11;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+
+/* THEME TOGGLE */
+.theme-toggle {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  margin: 8px 16px 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  transition: all 0.15s;
+  user-select: none;
+}
+.theme-toggle:hover { color: var(--text); border-color: var(--border2); }
+.theme-toggle svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* PREVIEW BOX */
+.preview-box {
+  background: var(--surface2);
+  border: 1px solid rgba(200,241,53,0.25);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 80px;
+  position: relative;
+}
+.preview-box .highlight-new {
+  background: rgba(200,241,53,0.18);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 500;
+}
+.result-box .highlight-new {
+  background: rgba(200,241,53,0.18);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 500;
+}
+
+/* COUNTER BADGE */
+.combos-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(200,241,53,0.1);
+  border: 1px solid rgba(200,241,53,0.25);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 10px;
+}
+.combos-badge strong { font-size: 15px; font-weight: 700; }
+
+/* HISTORY */
+.history-list { display: flex; flex-direction: column; gap: 6px; }
+.history-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.history-item:hover { border-color: var(--border2); background: var(--surface3); }
+.history-name { font-size: 13px; color: var(--text); font-weight: 500; }
+.history-meta { font-size: 11px; color: var(--muted2); margin-top: 2px; }
+.history-load {
+  font-size: 11px; color: var(--accent); border: 1px solid rgba(200,241,53,0.3);
+  border-radius: 5px; padding: 3px 10px; white-space: nowrap; flex-shrink: 0;
+  background: rgba(200,241,53,0.06);
+}
+.history-del {
+  font-size: 11px; color: var(--muted2); border: 1px solid var(--border);
+  border-radius: 5px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0;
+  background: transparent; cursor: pointer;
+}
+.history-del:hover { color: var(--danger); border-color: var(--danger); }
+
+/* PROFILES */
+.profile-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.profile-chip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  transition: all 0.15s;
+}
+.profile-chip:hover { border-color: var(--border2); color: var(--text); }
+.profile-del { 
+  width: 14px; height: 14px; border-radius: 50%; 
+  background: var(--surface3); display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--muted2); line-height:1;
+}
+.profile-del:hover { background: var(--danger); color: #fff; }
+
+/* VALIDATION */
+.validation-ok {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(95,219,138,0.08);
+  border: 1px solid rgba(95,219,138,0.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--success);
+  margin-top: 12px;
+}
+.validation-errors {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.validation-error-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(255,95,95,0.07);
+  border: 1px solid rgba(255,95,95,0.22);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.6;
+  transition: background 0.12s, border-color 0.12s;
+}
+.validation-error-item:hover {
+  background: rgba(255,95,95,0.13);
+  border-color: rgba(255,95,95,0.4);
+}
+.validation-error-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--danger);
+}
+.validation-error-line {
+  font-size: 11px;
+  color: var(--muted2);
+  margin-top: 2px;
+}
+.validation-error-highlight {
+  font-family: monospace;
+  background: rgba(255,95,95,0.12);
+  border-radius: 3px;
+  padding: 0 4px;
+  color: var(--danger);
+  font-size: 12px;
+}
+.validation-summary {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.validation-summary strong { color: var(--danger); }
+
+/* SNOW */
+#snow-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.55;
+  transition: opacity 0.6s ease;
+}
+#snow-canvas.hidden { opacity: 0; }
+
+/* SPIN CHECKER PAGE */
+.spin-variants { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.spin-variant {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  counter-increment: variant;
+}
+.spin-variant-num {
+  font-size: 10px; color: var(--muted2); margin-bottom: 4px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">Spin<span>Replacer</span></div>
+      <div class="logo-sub">Kurama team</div>
+      <a href="/" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);text-decoration:none;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;margin-top:10px;transition:all 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 3L5 8l5 5"/></svg> на главную</a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Меню</div>
+      <div class="nav-item active" onclick="showPage('replace', this)">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+        Замена спинов
+      </div>
+      <div class="nav-item" onclick="showPage('checker', this)">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
+        Проверка спинов
+      </div>
+      <div class="nav-item" onclick="showPage('history', this)">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        История
+      </div>
+      <div class="nav-item" onclick="showPage('help', this)">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/></svg>
+        Как пользоваться
+      </div>
+    </div>
+
+    <div class="nav-section" style="margin-top: 16px;">
+      <div class="nav-label">Категории</div>
+      <div class="nav-item" id="sidebar-cat-display" style="font-size:12px; color: var(--muted2); cursor:default; padding: 8px 12px;">
+        Не выбрана
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="theme-toggle" onclick="toggleTheme()" id="theme-toggle-btn">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+        <span id="theme-label">Светлая тема</span>
+      </div>
+      <div class="theme-toggle" onclick="toggleSnow()" id="snow-toggle-btn" style="margin-top:6px;">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18M3 12h18M5.636 5.636l12.728 12.728M18.364 5.636L5.636 18.364"/></svg>
+        <span id="snow-label">Выключить снег</span>
+      </div>
+      <div class="version" style="margin-top:12px;">From Vorobey For TOP Sellers❤️</div>
+    </div>
+  </aside>
+
+<canvas id="snow-canvas"></canvas>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- REPLACE PAGE -->
+    <div class="page active" id="page-replace">
+      <div class="page-header">
+        <div class="page-title">Замена <span>спинов</span></div>
+        <div class="page-desc">Заполни данные, выбери категорию и нажми «Заменить»</div>
+      </div>
+
+      <!-- STEP 1: Person -->
+      <div class="card">
+        <div class="card-title"><div class="card-title-dot"></div> Данные человека</div>
+
+        <!-- Saved profiles -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:7px;">Сохранённые профили</div>
+          <div class="profile-grid" id="profile-grid">
+            <span style="font-size:12px;color:var(--muted2);">Нет сохранённых</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn" style="font-size:12px;padding:7px 14px;" onclick="saveProfile()">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="13" height="13"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"/></svg>
+              Сохранить профиль
+            </button>
+            <button class="btn" style="font-size:12px;padding:7px 14px;" onclick="exportProfiles()">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="13" height="13"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+              Экспорт
+            </button>
+            <button class="btn" style="font-size:12px;padding:7px 14px;" onclick="document.getElementById('import-profiles-input').click()">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="13" height="13"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+              Импорт
+            </button>
+            <input type="file" id="import-profiles-input" accept=".json" style="display:none;" onchange="importProfiles(event)">
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <div style="margin-top:14px;margin-bottom:14px;">
+          <div class="field">
+            <label>Отрывок из спина с именем/каналом для замены</label>
+            <textarea id="name-snippet" style="min-height:80px;font-family:monospace;font-size:12px;" placeholder="{Dashapoxudei|тренера Дарьи|фитнес-тренера Дарьи},&#10;{Ирины Ковалёвой|психолога Ирины|Ирины психолога}"></textarea>
+            <div style="font-size:11px;color:var(--muted2);margin-top:4px;">Вставь один или несколько отрывков {…|…|…} через запятую - каждый будет найден и заменён во всех спинах.</div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field">
+            <label>Имя и фамилия - родительный</label>
+            <input type="text" id="name-gen" placeholder="Вики Клавдиной" />
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <div class="field">
+            <label>Профессия - родительный (можно несколько через запятую)</label>
+            <input type="text" id="role-gen" placeholder="тренера, фитнес-тренера, онлайн-тренера" />
+          </div>
+        </div>
+        <input type="hidden" id="name-nom" value="" />
+        <input type="hidden" id="role-nom" value="" />
+        <div class="field" style="margin-bottom:12px;">
+          <label>Название канала / чата (если отличается от имени)</label>
+          <input type="text" id="channel" placeholder="Оставь пустым - подставится имя" />
+        </div>
+        <div class="field" style="margin-bottom:12px;">
+          <label>Кол-во вариантов в замене имени/канала (рандомизация, 1–10)</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <input type="range" id="name-variants-count" min="1" max="10" value="5" style="flex:1;accent-color:var(--accent);" oninput="document.getElementById('name-variants-label').textContent=this.value">
+            <span id="name-variants-label" style="font-size:13px;color:var(--accent);font-weight:600;min-width:20px;">5</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted2);margin-top:3px;">Сколько вариантов будет внутри {…} в замене имени. Если вариантов меньше возможного - берёт только реальные.</div>
+        </div>
+        <div class="field">
+          <label>Пол - влияет на местоимения (её/его, у неё/у него и т.д.)</label>
+          <div class="gender-toggle" id="gender-toggle">
+            <div class="gender-opt active" id="gender-f" onclick="setGender('f')">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M12 12v8M9 17h6"/></svg>
+              Женский
+            </div>
+            <div class="gender-opt" id="gender-m" onclick="setGender('m')">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="14" r="4"/><path stroke-linecap="round" d="M14 10l6-6M20 4h-5M20 4v5"/></svg>
+              Мужской
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Category -->
+      <div class="card">
+        <div class="card-title"><div class="card-title-dot"></div> Категория и продукты</div>
+
+        <div style="margin-bottom:14px;">
+          <div class="field">
+            <label>Отрывок из спина с продуктами для замены</label>
+            <textarea id="product-snippet" style="min-height:48px;font-family:monospace;font-size:12px;" placeholder="{курсы|марафоны|обучение|программы|интенсивы|вебинары}"></textarea>
+            <div style="font-size:11px;color:var(--muted2);margin-top:4px;">Скопируй отрывок с продуктами из своих спинов. Программа найдёт похожие блоки во всех спинах и заменит их.</div>
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div class="field">
+            <label>Отрывок из спина с профессией для замены</label>
+            <textarea id="role-snippet" style="min-height:48px;font-family:monospace;font-size:12px;" placeholder="{тренере|онлайн тренере|онлайн фитнес тренере|фитнес тренере}"></textarea>
+            <div style="font-size:11px;color:var(--muted2);margin-top:4px;">Скопируй отрывок с профессией/должностью. Заменится на профессию из поля выше или из выбранной категории.</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+
+        <div style="margin-top:14px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Или выбери категорию - продукты подставятся автоматически</div>
+          <div class="cat-grid" id="cat-grid"></div>
+          <div style="margin-bottom:10px;">
+            <div class="field">
+              <label>Продукты этой категории (автозаполнение)</label>
+              <div class="products-list" id="products-list">
+                <span class="empty-hint">Выбери категорию выше</span>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Или введи свои продукты через запятую</label>
+            <input type="text" id="custom-products" placeholder="тренировки, марафоны, программы, занятия" />
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Spins -->
+      <div class="card">
+        <div class="card-title"><div class="card-title-dot"></div> Текст спинов</div>
+        <div class="field">
+          <textarea id="spin-input" style="min-height: 200px;" placeholder="Вставь сюда свои спины с фигурными скобками..."></textarea>
+        </div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-primary" onclick="doReplace()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+            Заменить
+          </button>
+          <button class="btn" onclick="previewSpin()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Предпросмотр
+          </button>
+          <button class="btn" onclick="clearAll()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            Очистить
+          </button>
+        </div>
+        <div id="combos-area" style="display:none;">
+          <div class="combos-badge">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+            Уникальных комбинаций: <strong id="combos-count">—</strong>
+          </div>
+        </div>
+        <div id="preview-area" style="display:none;margin-top:14px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:7px;display:flex;align-items:center;gap:8px;">
+            Предпросмотр одного случайного варианта
+            <button class="btn" style="font-size:11px;padding:4px 10px;" onclick="previewSpin()">Ещё раз</button>
+          </div>
+          <div class="preview-box" id="preview-box"></div>
+        </div>
+      </div>
+
+      <!-- RESULT -->
+      <div class="card">
+        <div class="card-title"><div class="card-title-dot"></div> Результат</div>
+        <div class="result-box" id="result-area"><span class="result-placeholder">Здесь появится результат после замены...</span></div>
+        <div class="stats-row" id="stats-row" style="display:none;">
+          <div class="stat-chip">Замен: <span class="stat-num" id="stat-count">0</span></div>
+          <div class="stat-chip">Символов: <span class="stat-num" id="stat-chars">0</span></div>
+        </div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn" onclick="copyResult()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
+            Скопировать
+          </button>
+          <button class="btn" onclick="downloadResult()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Сохранить .txt
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div class="page" id="page-history">
+      <div class="page-header">
+        <div class="page-title">История <span>сессий</span></div>
+        <div class="page-desc">Последние 10 использований - загрузи данные одним кликом</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="card-title-dot"></div> Последние сессии</div>
+        <div class="history-list" id="history-list">
+          <div style="font-size:13px;color:var(--muted2);">История пуста - замени хоть один спин и он появится здесь.</div>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn" onclick="clearHistory()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+            Очистить историю
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECKER PAGE -->
+    <div class="page" id="page-checker">
+      <div class="page-header">
+        <div class="page-title">Проверка <span>спинов</span></div>
+        <div class="page-desc">Вставь спин и получи множество вариантов готового текста</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="card-title-dot"></div> Спин для проверки</div>
+        <div class="field">
+          <textarea id="checker-input" style="min-height:180px;" placeholder="Вставь сюда спин с фигурными скобками..."></textarea>
+        </div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn btn-primary" onclick="runChecker()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/></svg>
+            Сгенерировать варианты
+          </button>
+          <button class="btn" onclick="runValidation()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Проверить скобки
+          </button>
+          <button class="btn" onclick="document.getElementById('checker-input').value='';document.getElementById('checker-results').innerHTML='';document.getElementById('checker-stats').style.display='none';document.getElementById('checker-validation').style.display='none';">
+            Очистить
+          </button>
+        </div>
+        <div id="checker-validation" style="display:none;"></div>
+        <div id="checker-stats" style="display:none;margin-top:10px;">
+          <div class="combos-badge">
+            Всего комбинаций: <strong id="checker-total">—</strong> · Показано: <strong id="checker-shown">—</strong>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="checker-results-card" style="display:none;">
+        <div class="card-title"><div class="card-title-dot"></div> Варианты</div>
+        <div class="spin-variants" id="checker-results"></div>
+      </div>
+    </div>
+
+    <!-- HELP PAGE -->
+    <div class="page" id="page-help">
+      <div class="page-header">
+        <div class="page-title">Как <span>пользоваться</span></div>
+        <div class="page-desc">Инструкция за 2 минуты</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><div class="card-title-dot"></div> Пошаговая инструкция</div>
+        <div class="step-list">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Найди в своих спинах отрывок с именем/каналом - например <strong>{OldName|тренера OldName|тренера Маши}</strong> - и вставь его в поле <strong>«Отрывок из спина с именем»</strong>.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">Введи <strong>новое имя и фамилию </strong> в родительном падиже, профессию, название канала. Программа сама сформирует варианты замены.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Найди в спинах отрывок с продуктами - например <strong>{курсы|марафоны|обучение}</strong> - и вставь его в поле <strong>«Отрывок из спина с продуктами»</strong>.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text">Выбери <strong>категорию</strong> или введи свои продукты через запятую. В каждом спине порядок продуктов будет разный - автоматически.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-text"><strong>Вставь все спины</strong> в поле текста и нажми <strong>«Заменить»</strong>. Скопируй или сохрани результат.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><div class="card-title-dot"></div> Что заменяется</div>
+        <div class="help-block">
+          <p>Программа находит в спинах тот самый отрывок {…|…|…} с именем или продуктами, который ты скопировал из своих спинов, и заменяет его на новые данные. В каждом спине порядок вариантов будет разным - для уникальности.</p>
+          <p>Местоимения (её/его, у неё/у него и т.д.) корректируются автоматически под выбранный пол.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toast-text">Скопировано!</span>
+</div>
+
+<script>
+const CATEGORIES = [
+  {
+    id: 'fitness',
+    label: 'Фитнес / спорт',
+    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>`,
+    roleNom: 'фитнес-тренер',
+    roleGen: 'фитнес-тренера',
+    products: ['тренировки', 'программы', 'марафоны', 'интенсивы', 'занятия', 'курсы', 'челленджи'],
+    removeWords: ['вебинары', 'семинары', 'сессии', 'консультации'],
+    spin: 'тренировки|программы|марафоны|интенсивы|занятия|курсы',
+    spinShort: 'тренировки|программы|занятия|курсы',
+  },
+  {
+    id: 'psychology',
+    label: 'Психология',
+    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>`,
+    roleNom: 'психолог',
+    roleGen: 'психолога',
+    products: ['вебинары', 'сессии', 'практики', 'курсы', 'тренинги', 'интенсивы', 'консультации'],
+    removeWords: ['тренировки', 'марафоны', 'занятия', 'челленджи'],
+    spin: 'вебинары|сессии|практики|курсы|тренинги|интенсивы',
+    spinShort: 'вебинары|практики|курсы|тренинги',
+  },
+  {
+    id: 'nutrition',
+    label: 'Нутрициология',
+    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>`,
+    roleNom: 'нутрициолог',
+    roleGen: 'нутрициолога',
+    products: ['курсы', 'программы', 'интенсивы', 'вебинары', 'схемы питания', 'методики', 'консультации'],
+    removeWords: ['тренировки', 'сессии', 'занятия', 'семинары'],
+    spin: 'курсы|программы|марафоны|интенсивы|вебинары',
+    spinShort: 'курсы|программы|марафоны|вебинары',
+  },
+  {
+    id: 'business',
+    label: 'Бизнес / коучинг',
+    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>`,
+    roleNom: 'коуч',
+    roleGen: 'коуча',
+    products: ['курсы', 'программы', 'тренинги', 'интенсивы', 'наставничество', 'воркшопы'],
+    removeWords: ['тренировки', 'занятия', 'марафоны', 'сессии'],
+    spin: 'курсы|программы|тренинги|интенсивы|наставничество',
+    spinShort: 'курсы|тренинги|программы|воркшопы',
+  },
+  {
+    id: 'beauty',
+    label: 'Красота / уход',
+    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42"/></svg>`,
+    roleNom: 'мастер',
+    roleGen: 'мастера',
+    products: ['курсы', 'обучение', 'интенсивы', 'мастер-классы', 'вебинары', 'программы'],
+    removeWords: ['тренировки', 'занятия', 'сессии', 'семинары'],
+    spin: 'курсы|обучение|интенсивы|мастер-классы|вебинары',
+    spinShort: 'курсы|обучение|мастер-классы|вебинары',
+  },
+  {
+    id: 'custom',
+    label: 'Другое',
+    icon: `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>`,
+    roleNom: '',
+    roleGen: '',
+    products: [],
+    removeWords: [],
+    spin: '',
+    spinShort: '',
+  },
+];
+
+let selectedCats = [];
+let selectedGender = 'f';
+let isLight = false;
+
+// ── THEME ──────────────────────────────────────────────
+function toggleTheme() {
+  isLight = !isLight;
+  document.body.classList.toggle('light', isLight);
+  const lbl = document.getElementById('theme-label');
+  lbl.textContent = isLight ? 'Тёмная тема' : 'Светлая тема';
+  localStorage.setItem('spinTheme', isLight ? 'light' : 'dark');
+}
+(function initTheme() {
+  const saved = localStorage.getItem('spinTheme');
+  if (saved === 'light') { isLight = true; document.body.classList.add('light'); document.addEventListener('DOMContentLoaded', () => { const lbl = document.getElementById('theme-label'); if(lbl) lbl.textContent = 'Тёмная тема'; }); }
+})();
+
+function exportProfiles() {
+  const profiles = loadProfiles();
+  if (!profiles.length) { showToastError('Нет профилей для экспорта'); return; }
+  const blob = new Blob([JSON.stringify(profiles, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'spin_profiles.json';
+  a.click();
+  showToast('Профили экспортированы');
+}
+function importProfiles(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('bad format');
+      const existing = loadProfiles();
+      imported.forEach(p => {
+        if (!p.nameNom) return;
+        const idx = existing.findIndex(x => x.nameNom === p.nameNom);
+        if (idx !== -1) existing.splice(idx, 1);
+        existing.unshift(p);
+      });
+      if (existing.length > 20) existing.length = 20;
+      saveProfiles(existing);
+      renderProfiles();
+      showToast('Импортировано: ' + imported.length + ' профилей');
+    } catch(err) {
+      showToastError('Ошибка файла - неверный формат');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── PROFILES ───────────────────────────────────────────
+function loadProfiles() {
+  try { return JSON.parse(localStorage.getItem('spinProfiles') || '[]'); } catch(e) { return []; }
+}
+function saveProfiles(arr) {
+  localStorage.setItem('spinProfiles', JSON.stringify(arr));
+}
+function saveProfile() {
+  const nameGen = document.getElementById('name-gen').value.trim();
+  if (!nameGen) { showToastError('Введи имя для сохранения'); return; }
+  const profile = {
+    id: Date.now(),
+    nameNom: nameGen,
+    nameGen,
+    roleNom: '',
+    roleGen: document.getElementById('role-gen').value.trim(),
+    channel: document.getElementById('channel').value.trim(),
+    gender: selectedGender,
+  };
+  const profiles = loadProfiles();
+  const existing = profiles.findIndex(p => p.nameNom === nameGen);
+  if (existing !== -1) profiles.splice(existing, 1);
+  profiles.unshift(profile);
+  if (profiles.length > 10) profiles.length = 10;
+  saveProfiles(profiles);
+  renderProfiles();
+  showToast('Профиль сохранён: ' + nameGen);
+}
+function loadProfile(id) {
+  const profiles = loadProfiles();
+  const p = profiles.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('name-nom').value = p.nameNom;
+  document.getElementById('name-gen').value = p.nameGen;
+  document.getElementById('role-nom').value = '';
+  document.getElementById('role-gen').value = p.roleGen;
+  document.getElementById('channel').value = p.channel;
+  setGender(p.gender || 'f');
+  showToast('Загружен: ' + p.nameNom);
+}
+function deleteProfile(id) {
+  const profiles = loadProfiles().filter(x => x.id !== id);
+  saveProfiles(profiles);
+  renderProfiles();
+}
+function renderProfiles() {
+  const grid = document.getElementById('profile-grid');
+  const profiles = loadProfiles();
+  if (!profiles.length) {
+    grid.innerHTML = '<span style="font-size:12px;color:var(--muted2);">Нет сохранённых</span>';
+    return;
+  }
+  grid.innerHTML = '';
+  profiles.forEach(p => {
+    const chip = document.createElement('div');
+    chip.className = 'profile-chip';
+    chip.innerHTML = `<span onclick="loadProfile(${p.id})" style="flex:1;">${p.nameNom}</span><span class="profile-del" onclick="event.stopPropagation();deleteProfile(${p.id})" title="Удалить">✕</span>`;
+    grid.appendChild(chip);
+  });
+}
+
+// ── HISTORY ────────────────────────────────────────────
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem('spinHistory') || '[]'); } catch(e) { return []; }
+}
+function saveHistoryEntry(entry) {
+  const hist = loadHistory();
+  hist.unshift(entry);
+  if (hist.length > 10) hist.length = 10;
+  localStorage.setItem('spinHistory', JSON.stringify(hist));
+}
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const hist = loadHistory();
+  if (!hist.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--muted2);">История пуста - замени хоть один спин и он появится здесь.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  hist.forEach((h, i) => {
+    const div = document.createElement('div');
+    div.className = 'history-item';
+    const date = new Date(h.ts).toLocaleString('ru', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    div.innerHTML = `
+      <div style="flex:1;min-width:0;">
+        <div class="history-name">${h.nameGen || h.nameNom}${h.roleGen ? ' · ' + h.roleGen : (h.roleNom ? ' · ' + h.roleNom : '')}</div>
+        <div class="history-meta">${date} · ${h.replacements} замен · ${h.cats}</div>
+      </div>
+      <span class="history-load" onclick="loadFromHistory(${i})">Загрузить</span>
+      <button class="history-del" onclick="deleteHistoryItem(${i})">✕</button>
+    `;
+    list.appendChild(div);
+  });
+}
+function loadFromHistory(i) {
+  const h = loadHistory()[i];
+  if (!h) return;
+  document.getElementById('name-nom').value = h.nameNom || '';
+  document.getElementById('name-gen').value = h.nameGen || '';
+  document.getElementById('role-nom').value = '';
+  document.getElementById('role-gen').value = h.roleGen || h.roleNom || '';
+  document.getElementById('channel').value = h.channel || '';
+  setGender(h.gender || 'f');
+  if (h.spinText) document.getElementById('spin-input').value = h.spinText;
+  const firstNav = document.querySelectorAll('.nav-item')[0];
+  showPage('replace', firstNav);
+  showToast('Загружено из истории');
+}
+function deleteHistoryItem(i) {
+  const hist = loadHistory();
+  hist.splice(i, 1);
+  localStorage.setItem('spinHistory', JSON.stringify(hist));
+  renderHistory();
+}
+function clearHistory() {
+  localStorage.removeItem('spinHistory');
+  renderHistory();
+  showToast('История очищена');
+}
+
+// ── SPIN UTILS ─────────────────────────────────────────
+function pickRandom(str) {
+  // Resolves {a|b|c} recursively, picking one random option
+  let result = str;
+  let safety = 0;
+  while (result.includes('{') && safety++ < 50) {
+    result = result.replace(/\{([^{}]*)\}/g, (_, inner) => {
+      const opts = inner.split('|');
+      return opts[Math.floor(Math.random() * opts.length)];
+    });
+  }
+  return result;
+}
+
+function countCombos(str) {
+  // Count total unique combos by multiplying option counts
+  let total = 1;
+  let safety = 0;
+  let s = str;
+  while (s.includes('{') && safety++ < 100) {
+    s = s.replace(/\{([^{}]*)\}/g, (_, inner) => {
+      total *= inner.split('|').length;
+      return 'X';
+    });
+  }
+  return total;
+}
+
+// ── PREVIEW ────────────────────────────────────────────
+function previewSpin() {
+  const text = document.getElementById('spin-input').value;
+  if (!text) { showToastError('Вставь спины сначала'); return; }
+
+  const combos = countCombos(text);
+  const resolved = pickRandom(text);
+
+  // Highlight what changed vs original non-spun text
+  // We highlight words that aren't surrounded by { } in the original
+  const previewEl = document.getElementById('preview-box');
+  previewEl.textContent = resolved;
+
+  const combosArea = document.getElementById('combos-area');
+  document.getElementById('combos-count').textContent = combos.toLocaleString('ru');
+  combosArea.style.display = 'flex';
+
+  document.getElementById('preview-area').style.display = 'block';
+}
+
+// ── COMBO COUNTER (on input) ───────────────────────────
+function updateCombosOnInput() {
+  const text = document.getElementById('spin-input').value;
+  if (!text) { document.getElementById('combos-area').style.display = 'none'; return; }
+  const combos = countCombos(text);
+  document.getElementById('combos-count').textContent = combos.toLocaleString('ru');
+  document.getElementById('combos-area').style.display = 'flex';
+}
+
+// ── CHECKER ────────────────────────────────────────────
+function runChecker() {
+  const text = document.getElementById('checker-input').value.trim();
+  if (!text) { showToastError('Вставь спин для проверки'); return; }
+
+  // Auto-validate on generate
+  runValidation();
+
+  const total = countCombos(text);
+  const showCount = Math.min(total, 20);
+
+  const results = new Set();
+  let tries = 0;
+  while (results.size < showCount && tries < showCount * 10) {
+    results.add(pickRandom(text));
+    tries++;
+  }
+
+  const container = document.getElementById('checker-results');
+  container.innerHTML = '';
+  [...results].forEach((v, i) => {
+    const div = document.createElement('div');
+    div.className = 'spin-variant';
+    div.innerHTML = `<div class="spin-variant-num">Вариант ${i + 1}</div>${escapeHtml(v)}`;
+    container.appendChild(div);
+  });
+
+  document.getElementById('checker-total').textContent = total.toLocaleString('ru');
+  document.getElementById('checker-shown').textContent = results.size;
+  document.getElementById('checker-stats').style.display = 'flex';
+  document.getElementById('checker-results-card').style.display = 'block';
+}
+
+// ── BRACE VALIDATOR ────────────────────────────────────
+function validateBraces(text) {
+  const errors = [];
+
+  // Helper: get {line, col, charIndex} from absolute char index
+  const getLineCol = (idx) => {
+    let count = 0;
+    const ls = text.split('\n');
+    for (let i = 0; i < ls.length; i++) {
+      if (count + ls[i].length + 1 > idx) {
+        return { line: i + 1, col: idx - count + 1, charIndex: idx };
+      }
+      count += ls[i].length + 1;
+    }
+    return { line: ls.length, col: 1, charIndex: idx };
+  };
+
+  // ── Pass 1: unclosed { and extra } ──────────────────────
+  // Track a stack of open-brace absolute positions
+  const lines = text.split('\n');
+  let absPos = 0;
+  const stack = []; // stack of absolute positions of unmatched {
+
+  lines.forEach((line, lineIdx) => {
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      const pos = absPos + i;
+      if (ch === '{') {
+        stack.push(pos);
+      } else if (ch === '}') {
+        if (stack.length === 0) {
+          // extra closing brace
+          const lc = getLineCol(pos);
+          errors.push({
+            type: 'extra_close',
+            line: lc.line, col: lc.col,
+            charIndex: pos, selectLen: 1,
+            context: text.slice(Math.max(0, pos - 10), pos + 10).replace(/\n/g, '↵').trim(),
+            msg: 'Лишняя закрывающая скобка } без открывающей',
+          });
+        } else {
+          stack.pop();
+        }
+      }
+    }
+    absPos += line.length + 1; // +1 for \n
+  });
+
+  // Remaining items in stack = unclosed {
+  stack.forEach(pos => {
+    const lc = getLineCol(pos);
+    const snippet = text.slice(pos, pos + 25).replace(/\n/g, '↵');
+    errors.push({
+      type: 'unclosed',
+      line: lc.line, col: lc.col,
+      charIndex: pos, selectLen: 1,
+      context: snippet.length > 25 ? snippet.slice(0, 22) + '…' : snippet,
+      msg: 'Незакрытая скобка { - нет парной }',
+    });
+  });
+
+  // ── Pass 2: empty {} and single-variant {word} ───────────
+  const emptyRe = /\{\s*\}/g;
+  const singleRe = /\{([^{}|]+)\}/g;
+  let m;
+
+  while ((m = emptyRe.exec(text)) !== null) {
+    const lc = getLineCol(m.index);
+    errors.push({
+      type: 'empty',
+      line: lc.line, col: lc.col,
+      charIndex: m.index, selectLen: m[0].length,
+      context: '{}',
+      msg: 'Пустой спин {} - нет вариантов внутри',
+    });
+  }
+
+  while ((m = singleRe.exec(text)) !== null) {
+    const lc = getLineCol(m.index);
+    const ctx = m[0].length > 40 ? m[0].slice(0, 37) + '…}' : m[0];
+    errors.push({
+      type: 'single',
+      line: lc.line, col: lc.col,
+      charIndex: m.index, selectLen: m[0].length,
+      context: ctx,
+      msg: 'Спин с одним вариантом - не работает как спин',
+    });
+  }
+
+  // Sort by charIndex
+  errors.sort((a, b) => a.charIndex - b.charIndex);
+
+  return errors;
+}
+
+// Jump to error position in textarea and select the problematic fragment
+function jumpToError(charIndex, selectLen) {
+  const ta = document.getElementById('checker-input');
+  ta.focus();
+  ta.setSelectionRange(charIndex, charIndex + (selectLen || 1));
+
+  // Scroll textarea to show the selection
+  // Estimate line height and scroll position
+  const text = ta.value;
+  const linesUpTo = text.slice(0, charIndex).split('\n');
+  const lineNum = linesUpTo.length;
+  const lineHeight = parseInt(getComputedStyle(ta).lineHeight) || 20;
+  ta.scrollTop = Math.max(0, (lineNum - 3) * lineHeight);
+}
+
+function runValidation() {
+  const text = document.getElementById('checker-input').value;
+  if (!text.trim()) { showToastError('Вставь спин для проверки'); return; }
+
+  const container = document.getElementById('checker-validation');
+  container.style.display = 'block';
+  container.innerHTML = '';
+
+  const errors = validateBraces(text);
+
+  if (!errors.length) {
+    container.innerHTML = `
+      <div class="validation-ok">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Всё хорошо - скобки расставлены правильно
+      </div>`;
+    return;
+  }
+
+  // Group: critical vs warnings (single)
+  const critical = errors.filter(e => e.type !== 'single');
+  const warnings = errors.filter(e => e.type === 'single');
+
+  let html = '<div class="validation-summary">';
+  if (critical.length) html += `<strong>${critical.length} ${critical.length === 1 ? 'ошибка' : critical.length < 5 ? 'ошибки' : 'ошибок'}</strong>`;
+  if (critical.length && warnings.length) html += ' · ';
+  if (warnings.length) html += `<span style="color:var(--muted);">${warnings.length} ${warnings.length === 1 ? 'предупреждение' : warnings.length < 5 ? 'предупреждения' : 'предупреждений'}</span>`;
+  html += ' <span style="color:var(--muted2);font-size:11px;">— нажми на ошибку чтобы перейти</span></div>';
+
+  html += '<div class="validation-errors">';
+
+  const iconErr = `<svg class="validation-error-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>`;
+  const iconWarn = `<svg style="flex-shrink:0;margin-top:1px;color:var(--muted);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>`;
+
+  critical.forEach(e => {
+    html += `
+      <div class="validation-error-item" style="cursor:pointer;" onclick="jumpToError(${e.charIndex},${e.selectLen})">
+        ${iconErr}
+        <div style="flex:1;">
+          <div>${e.msg}</div>
+          <div class="validation-error-line">Строка ${e.line}, позиция ${e.col} · <span class="validation-error-highlight">${escapeHtml(e.context)}</span></div>
+        </div>
+        <svg style="flex-shrink:0;color:var(--muted2);opacity:0.5;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="13" height="13"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+      </div>`;
+  });
+
+  warnings.forEach(e => {
+    html += `
+      <div class="validation-error-item" style="background:rgba(136,136,150,0.07);border-color:rgba(136,136,150,0.2);cursor:pointer;" onclick="jumpToError(${e.charIndex},${e.selectLen})">
+        ${iconWarn}
+        <div style="flex:1;">
+          <div style="color:var(--muted);">${e.msg}</div>
+          <div class="validation-error-line">Строка ${e.line}, позиция ${e.col} · <span class="validation-error-highlight" style="background:rgba(136,136,150,0.12);color:var(--muted);">${escapeHtml(e.context)}</span></div>
+        </div>
+        <svg style="flex-shrink:0;color:var(--muted2);opacity:0.5;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" width="13" height="13"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+      </div>`;
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── GENDER ─────────────────────────────────────────────
+function setGender(g) {
+  selectedGender = g;
+  document.getElementById('gender-f').classList.toggle('active', g === 'f');
+  document.getElementById('gender-m').classList.toggle('active', g === 'm');
+}
+
+// ── CATEGORIES ─────────────────────────────────────────
+function buildCatGrid() {
+  const grid = document.getElementById('cat-grid');
+  CATEGORIES.forEach(cat => {
+    const btn = document.createElement('div');
+    btn.className = 'cat-pill';
+    btn.id = 'cat-' + cat.id;
+    btn.innerHTML = cat.icon + cat.label;
+    btn.onclick = () => selectCat(cat.id);
+    grid.appendChild(btn);
+  });
+}
+
+function selectCat(id) {
+  const idx = selectedCats.indexOf(id);
+  if (idx === -1) {
+    selectedCats.push(id);
+    document.getElementById('cat-' + id).classList.add('active');
+  } else {
+    selectedCats.splice(idx, 1);
+    document.getElementById('cat-' + id).classList.remove('active');
+  }
+  updateProductsList();
+  const labels = selectedCats.map(c => CATEGORIES.find(x => x.id === c).label);
+  document.getElementById('sidebar-cat-display').textContent = labels.length ? labels.join(', ') : 'Не выбрана';
+}
+
+function updateProductsList() {
+  const list = document.getElementById('products-list');
+  list.innerHTML = '';
+  if (!selectedCats.length) {
+    list.innerHTML = '<span class="empty-hint">Выбери категорию выше</span>';
+    return;
+  }
+  const allProducts = [];
+  const allRemove = [];
+  selectedCats.forEach(id => {
+    const cat = CATEGORIES.find(c => c.id === id);
+    cat.products.forEach(p => { if (!allProducts.includes(p)) allProducts.push(p); });
+    cat.removeWords.forEach(p => { if (!allRemove.includes(p)) allRemove.push(p); });
+  });
+  const actualRemove = allRemove.filter(w => !allProducts.includes(w));
+
+  allProducts.forEach(p => {
+    const tag = document.createElement('span');
+    tag.className = 'prod-tag active-tag';
+    tag.textContent = p;
+    list.appendChild(tag);
+  });
+  if (actualRemove.length) {
+    const sep = document.createElement('span');
+    sep.style.cssText = 'font-size:11px;color:var(--muted2);margin:0 4px;';
+    sep.textContent = '· убираются:';
+    list.appendChild(sep);
+    actualRemove.forEach(p => {
+      const tag = document.createElement('span');
+      tag.className = 'prod-tag';
+      tag.style.textDecoration = 'line-through';
+      tag.style.opacity = '0.5';
+      tag.textContent = p;
+      list.appendChild(tag);
+    });
+  }
+}
+
+function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function getProductSpin(type) {
+  const custom = document.getElementById('custom-products').value.trim();
+  if (custom) {
+    const parts = custom.split(',').map(s => s.trim()).filter(Boolean);
+    return parts.join('|');
+  }
+  if (selectedCats.length) {
+    const allProducts = [];
+    selectedCats.forEach(id => {
+      const cat = CATEGORIES.find(c => c.id === id);
+      if (cat) cat.products.forEach(p => { if (!allProducts.includes(p)) allProducts.push(p); });
+    });
+    return allProducts.join('|');
+  }
+  return null;
+}
+
+
+// ── REPLACE ────────────────────────────────────────────
+
+// Parse snippet like {a|b|c|d} → array of variants
+function parseSnippet(snippet) {
+  const s = snippet.trim();
+  const inner = s.startsWith('{') && s.endsWith('}') ? s.slice(1, -1) : s;
+  return inner.split('|').map(v => v.trim()).filter(Boolean);
+}
+
+// Build product spin with varied order per spin index
+function buildProductSpinForIndex(products, spinIdx) {
+  if (!products || !products.length) return null;
+  const arr = [...products];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = (spinIdx * 31 + i * 17) % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.join('|');
+}
+
+// Parse a possibly comma-separated role string into array of trimmed variants
+function parseRoleField(str) {
+  if (!str) return [];
+  return str.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+// Build name spin for a given spin index with maximum randomization
+function buildNameSpinForIndex(nameVariants, nameNom, nameGen, roleNomRaw, roleGenRaw, channel, spinIdx, wantedCount) {
+  const firstName   = nameNom ? nameNom.split(' ')[0] : '';
+  const firstNameGen = nameGen ? nameGen.split(' ')[0] : '';
+  const surnameNom  = nameNom ? nameNom.split(' ').slice(1).join(' ') : '';
+  const surnameGen  = nameGen ? nameGen.split(' ').slice(1).join(' ') : '';
+
+  // Support comma-separated role variants
+  const roleNomList = parseRoleField(roleNomRaw);
+  const roleGenList = parseRoleField(roleGenRaw);
+
+  const pool = new Set();
+
+  // Base name variants
+  if (nameNom)                                  pool.add(nameNom);
+  if (nameGen && nameGen !== nameNom)           pool.add(nameGen);
+  if (firstName)                                pool.add(firstName);
+  if (firstNameGen && firstNameGen !== firstName) pool.add(firstNameGen);
+  if (surnameGen && firstNameGen)               pool.add(surnameGen + ' ' + firstNameGen);
+
+  // With each roleGen variant
+  roleGenList.forEach(rg => {
+    if (nameGen)      pool.add(rg + ' ' + nameGen);
+    if (firstNameGen) pool.add(rg + ' ' + firstNameGen);
+    if (surnameGen && firstNameGen) pool.add(rg + ' ' + surnameGen);
+    // Reversed: Surname + firstName + role
+    if (surnameGen && firstNameGen) pool.add(rg + ' ' + firstNameGen + ' ' + surnameGen);
+  });
+
+  // With each roleNom variant
+  roleNomList.forEach(rn => {
+    if (nameNom) pool.add(rn + ' ' + nameNom);
+    if (firstName) pool.add(rn + ' ' + firstName);
+  });
+
+  // Channel name (quoted if it doesn't look like a real name)
+  if (channel && channel !== nameNom) pool.add(channel);
+
+  const unique = [...pool].filter(Boolean);
+
+  // Trim to wantedCount (from slider), or all unique if fewer
+  const count = Math.min(wantedCount || nameVariants.length || 5, unique.length);
+  if (count === 0) return nameNom || '';
+
+  // Deterministic shuffle based on spinIdx to vary order per spin
+  const shuffled = [...unique];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = (spinIdx * 13 + i * 7) % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  // Take first `count` after shuffle — no leading/trailing spaces around pipes
+  return shuffled.slice(0, count).map(v => v.trim()).join('|');
+}
+
+function doReplace() {
+  const nameGen = document.getElementById('name-gen').value.trim();
+  // Derive nominative automatically from genitive (used for pool building only)
+  const nameNom = nameGen; // we only use genitive for output; nominative pool is same
+  const roleGen = document.getElementById('role-gen').value.trim();
+  const roleNom = roleGen; // nominative = same as genitive for pool purposes
+  const channel = document.getElementById('channel').value.trim() || nameNom;
+  const nameSnippetRaw = document.getElementById('name-snippet').value.trim();
+  // Split multiple snippets: they are separated by },{ or }, { or newlines between them
+  // We split on pattern: }  ,  optional-whitespace  {  but keep the braces with each snippet
+  const nameSnippets = nameSnippetRaw
+    ? nameSnippetRaw.split(/}\s*[,\n]\s*{/).map((s, i, arr) => {
+        // Re-add the braces stripped by the split
+        let part = s.trim();
+        if (!part.startsWith('{')) part = '{' + part;
+        if (!part.endsWith('}')) part = part + '}';
+        return part;
+      }).filter(s => s.length > 2)
+    : [];
+  const wantedNameCount = parseInt(document.getElementById('name-variants-count').value) || 5;
+  const productSnippet = document.getElementById('product-snippet').value.trim();
+  const roleSnippet = document.getElementById('role-snippet').value.trim();
+  let text = document.getElementById('spin-input').value;
+
+  if (!text) { showToastError('Вставь спины сначала'); return; }
+  if (!nameGen && !nameSnippets.length && !productSnippet) { showToastError('Введи имя или отрывок для замены'); return; }
+
+  // Split into individual spins (separated by line with only |)
+  const spins = text.split(/\n\|\n/);
+
+  // nameVariants: array of [variantsArray] per snippet
+  const nameSnippetsParsed = nameSnippets.map(s => parseSnippet(s));
+  const productVariants = productSnippet ? parseSnippet(productSnippet) : [];
+  const roleVariants = roleSnippet ? parseSnippet(roleSnippet) : [];
+
+  // Get target products list
+  const getTargetProducts = () => {
+    const custom = document.getElementById('custom-products').value.trim();
+    if (custom) return custom.split(',').map(s => s.trim()).filter(Boolean);
+    if (selectedCats.length) {
+      const all = [];
+      selectedCats.forEach(id => {
+        const cat = CATEGORIES.find(c => c.id === id);
+        if (cat) cat.products.forEach(p => { if (!all.includes(p)) all.push(p); });
+      });
+      return all;
+    }
+    return [];
+  };
+  const targetProducts = getTargetProducts();
+
+  let totalCount = 0;
+  const allReplacements = new Set();
+
+  let roleNoStemWarning = false;
+
+  const processedSpins = spins.map((spin, spinIdx) => {
+    let s = spin;
+
+    // ── NAME SNIPPET REPLACEMENT (supports multiple snippets) ─────────────────────────
+    if (nameSnippetsParsed.length && nameGen) {
+      // Build one replacement spin (same for all snippets in this spin)
+      const newNameSpin = buildNameSpinForIndex(
+        nameSnippetsParsed[0],
+        nameGen, nameGen, roleNom, roleGen, channel, spinIdx, wantedNameCount
+      );
+      const newBlock = '{' + newNameSpin + '}';
+
+      // Strategy:
+      // — If ONE snippet given: try exact match, then fuzzy (find any {…} block whose
+      //   variants overlap sufficiently with the snippet variants). This lets the tool
+      //   work even when the spin text uses a slightly different order or spacing.
+      // — If MULTIPLE snippets given: exact match only per snippet (they are precise anchors).
+      if (nameSnippets.length === 1) {
+        const originalSnippet = nameSnippets[0];
+        const nameVariants = nameSnippetsParsed[0];
+
+        // 1. Try exact literal match
+        if (s.includes(originalSnippet)) {
+          s = s.replace(new RegExp(esc(originalSnippet), 'g'), () => { totalCount++; allReplacements.add(newBlock); return newBlock; });
+        } else {
+          // 2. Fuzzy: find {…} blocks that share variants with the snippet.
+          // A block matches if ANY of its pipe-values appears in the snippet's value set,
+          // OR if ANY snippet value appears among the block's values.
+          // This handles cases where spins have different counts/orders of variants.
+          const snippetSet = new Set(nameVariants.map(v => v.toLowerCase().trim()));
+          // keyWords: only latin tokens (usernames/channel names) or long unique RU words
+          const commonRU = new Set(["\u0442\u0440\u0435\u043d\u0435\u0440\u0430","\u0442\u0440\u0435\u043d\u0435\u0440\u0435","\u0442\u0440\u0435\u043d\u0435\u0440","\u043e\u043d\u043b\u0430\u0439\u043d","\u0444\u0438\u0442\u043d\u0435\u0441","\u043a\u0443\u0440\u0441\u044b","\u043c\u0430\u0440\u0430\u0444\u043e\u043d","\u043e\u0431\u0443\u0447\u0435\u043d\u0438\u0435","\u0437\u0430\u043d\u044f\u0442\u0438\u044f","\u043f\u0441\u0438\u0445\u043e\u043b\u043e\u0433\u0430","\u043a\u043e\u0443\u0447\u0430","\u043c\u0430\u0441\u0442\u0435\u0440\u0430"]);
+          const keyWords = new Set();
+          nameVariants.forEach(v => {
+            v.trim().split(/\s+/).forEach(w => {
+              const wl = w.toLowerCase().replace(/[^a-z\u0430-\u044f\u0451\u0410-\u042f\u0401]/g, "");
+              const hasLatin = /[a-z]/.test(wl);
+              // Only add: latin words (usernames) OR long RU words not in common list
+              if (hasLatin && wl.length > 2) keyWords.add(wl);
+              else if (!hasLatin && wl.length > 6 && !commonRU.has(wl)) keyWords.add(wl);
+            });
+          });
+          s = s.replace(/\{([^{}]+)\}/g, (m, inner) => {
+            const parts = inner.split('|').map(p => p.trim());
+            // Check 1: any part exactly matches a snippet variant
+            const exactHit = parts.some(p => snippetSet.has(p.toLowerCase()));
+            if (exactHit) { totalCount++; allReplacements.add(newBlock); return newBlock; }
+            // Check 2: any part contains a key word from the snippet (e.g. the channel name)
+            const keyHit = keyWords.size > 0 && parts.some(p =>
+              [...keyWords].some(kw => p.toLowerCase().includes(kw))
+            );
+            if (keyHit) { totalCount++; allReplacements.add(newBlock); return newBlock; }
+            return m;
+          });
+        }
+      } else {
+        // Multiple snippets — exact match only per snippet
+        nameSnippets.forEach((originalSnippet) => {
+          if (!originalSnippet || !s.includes(originalSnippet)) return;
+          s = s.replace(new RegExp(esc(originalSnippet), 'g'), () => { totalCount++; allReplacements.add(newBlock); return newBlock; });
+        });
+      }
+    }
+
+    // ── PRODUCT SNIPPET REPLACEMENT ──────────────────────
+    if (productVariants.length && targetProducts.length) {
+      const newProductSpin = buildProductSpinForIndex(targetProducts, spinIdx);
+      const newBlock = '{' + newProductSpin + '}';
+
+      // Try exact match
+      const exactRe = new RegExp(esc(productSnippet), 'g');
+      if (exactRe.test(s)) {
+        s = s.replace(new RegExp(esc(productSnippet), 'g'), () => { totalCount++; allReplacements.add(newBlock); return newBlock; });
+      } else {
+        // Try matching by inner variants
+        const innerPattern = productVariants.map(v => esc(v)).join('\\|');
+        const innerRe = new RegExp('\\{' + innerPattern + '\\}', 'g');
+        if (innerRe.test(s)) {
+          s = s.replace(new RegExp('\\{' + innerPattern + '\\}', 'g'), () => { totalCount++; allReplacements.add(newBlock); return newBlock; });
+        } else {
+          // Fuzzy: find {…} blocks containing majority of snippet variants
+          s = s.replace(/\{([^{}]+)\}/g, (m, inner) => {
+            const parts = inner.split('|').map(p => p.trim());
+            const matchCount = productVariants.filter(v => parts.includes(v)).length;
+            if (matchCount >= Math.ceil(productVariants.length * 0.5)) {
+              totalCount++;
+              allReplacements.add(newBlock);
+              return newBlock;
+            }
+            return m;
+          });
+        }
+      }
+    }
+
+
+    // ── ROLE SNIPPET REPLACEMENT ──────────────────────────
+    if (roleVariants.length) {
+      // Get the BASE (nominative) role stem from category or user input
+      const getBaseRoleStem = () => {
+        if (selectedCats.length) {
+          const cat = CATEGORIES.find(c => c.id === selectedCats[0]);
+          if (cat && cat.roleNom) return cat.roleNom; // e.g. "нутрициолог"
+        }
+        const fromNom = parseRoleField(roleNom);
+        return fromNom[0] || '';
+      };
+      const baseRoleStem = getBaseRoleStem(); // e.g. "нутрициолог"
+
+      if (baseRoleStem) {        // ── SUFFIX TRANSFER ──────────────────────────────────
+        // Each snippet variant has a "last word" which is the original profession word
+        // in some grammatical form: "тренере", "тренера", "тренером" etc.
+        // We detect the suffix by comparing the original snippet's FIRST variant's last word
+        // to its own stem, then apply that same suffix pattern to the new stem.
+        //
+        // Strategy: find the longest common prefix between the original profession stem
+        // (from category or user) and each variant's last word → that's the "changed ending".
+        // Then apply that ending to the new stem.
+        //
+        // We detect the original stem from the snippet itself:
+        // take the first variant, get its last word, then find the longest match
+        // with any known profession word. As fallback we use the last word as-is.
+
+        // Russian noun endings (longest first for greedy matching)
+        const RU_ENDINGS = ['ами','ого','ому','ом','ем','ой','ей','ие','ия','ию','ии',
+                            'ах','ям','ых','им','их','ую','юю','ое','ее',
+                            'е','а','у','ы','и','о','й','ь','я','ю'];
+
+        // Strip a known Russian ending from a word, return {stem, ending}
+        const stripEnding = (word) => {
+          const w = word.toLowerCase();
+          for (const end of RU_ENDINGS) {
+            if (w.endsWith(end) && w.length - end.length >= 3) {
+              return { stem: word.slice(0, word.length - end.length), ending: end };
+            }
+          }
+          return { stem: word, ending: '' };
+        };
+
+        // For each variant: keep prefix words, transfer the grammatical ending to new stem
+        const newVariants = roleVariants.map((variant, i) => {
+          const parts = variant.trim().split(' ');
+          const lastWord = parts[parts.length - 1]; // e.g. "тренере", "тренера"
+          const prefix = parts.slice(0, -1).join(' '); // "онлайн", "о", "" etc.
+
+          // Detect the ending of the original profession word
+          const { ending } = stripEnding(lastWord);
+          // Apply same ending to new stem
+          const newLastWord = baseRoleStem + ending;
+          return prefix ? prefix + ' ' + newLastWord : newLastWord;
+        });
+
+        // Shuffle order per spin
+        const shuffled = [...newVariants];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = (spinIdx * 19 + i * 11) % (i + 1);
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        const newRoleSpin = shuffled.map(v => v.trim()).join('|');
+        const newRoleBlock = '{' + newRoleSpin + '}';
+
+        // Try exact match first
+        const exactRe = new RegExp(esc(roleSnippet), 'g');
+        if (exactRe.test(s)) {
+          s = s.replace(new RegExp(esc(roleSnippet), 'g'), () => { totalCount++; allReplacements.add(newRoleBlock); return newRoleBlock; });
+        } else {
+          // Try matching by inner variants (exact order)
+          const innerPattern = roleVariants.map(v => esc(v)).join('\|');
+          const innerRe = new RegExp('\{' + innerPattern + '\}', 'g');
+          if (innerRe.test(s)) {
+            s = s.replace(new RegExp('\{' + innerPattern + '\}', 'g'), () => { totalCount++; allReplacements.add(newRoleBlock); return newRoleBlock; });
+          } else {
+            // Fuzzy: find {…} blocks containing majority of role snippet variants
+            s = s.replace(/\{([^{}]+)\}/g, (m, inner) => {
+              const parts = inner.split('|').map(p => p.trim());
+              const matchCount = roleVariants.filter(v => parts.includes(v)).length;
+              if (matchCount >= Math.ceil(roleVariants.length * 0.5)) {
+                totalCount++;
+                allReplacements.add(newRoleBlock);
+                return newRoleBlock;
+              }
+              return m;
+            });
+          }
+        }
+      } else {
+        roleNoStemWarning = true;
+      }
+    }
+
+    // ── GENDER PRONOUNS ───────────────────────────────────
+    const R = (str, from, to, useWordBoundary) => {
+      const pattern = useWordBoundary
+        ? new RegExp('(?<![а-яёА-ЯЁa-zA-Z])' + esc(from) + '(?![а-яёА-ЯЁa-zA-Z])', 'g')
+        : new RegExp(esc(from), 'g');
+      const result = str.replace(pattern, to);
+      if (result !== str) allReplacements.add(to);
+      return result;
+    };
+    if (selectedGender === 'm') {
+      [
+        ['её курсы','его курсы'],['её марафоны','его марафоны'],['её программы','его программы'],
+        ['её тренировки','его тренировки'],['её обучение','его обучение'],['её занятия','его занятия'],
+        ['её интенсивы','его интенсивы'],['её вебинары','его вебинары'],['её практики','его практики'],
+        ['её тренинги','его тренинги'],['её материалы','его материалы'],['её лекции','его лекции'],
+        ['её инфопродукты','его инфопродукты'],['её курс','его курс'],['её программу','его программу'],
+        ['её методики','его методики'],['у неё','у него'],['о ней','о нём'],['за ней','за ним'],
+        ['к ней','к нему'],['брали её','брали его'],['проходили её','проходили его'],
+        ['покупали её','покупали его'],['изучали её','изучали его'],['смотрели её','смотрели его'],
+        ['знакомы с её','знакомы с его'],['приобрести её','приобрести его'],['пойти на её','пойти на его'],
+      ].forEach(([from, to]) => { s = R(s, from, to); });
+      // standalone её/ее with word boundary — prevents 'заранее'→'заранеего'
+      s = R(s, 'её', 'его', true);
+      s = R(s, 'ее', 'его', true);
+    } else {
+      [
+        ['его курсы','её курсы'],['у него','у неё'],['о нём','о ней'],
+        ['брали его','брали её'],['проходили его','проходили её'],
+        ['покупали его','покупали её'],['знакомы с его','знакомы с её'],
+      ].forEach(([from, to]) => { s = R(s, from, to); });
+    }
+
+    return s;
+  });
+
+  text = processedSpins.join('\n|\n');
+
+  // Render with highlights
+  const ra = document.getElementById('result-area');
+  ra.innerHTML = '';
+  const escaped = escapeHtml(text);
+  let highlighted = escaped;
+  if (allReplacements.size) {
+    // Sort longest first so full blocks {…} are highlighted before their sub-words
+    const sortedReps = [...allReplacements].filter(r => r && r.length > 1).sort((a,b) => b.length - a.length);
+    sortedReps.forEach(rep => {
+      if (!rep) return;
+      // Escape the rep as HTML first, then escape THAT for use in regex
+      const safeRep = escapeHtml(rep);
+      const rePattern = safeRep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Only highlight if not already inside a span (avoid double-wrapping)
+      highlighted = highlighted.replace(new RegExp('(?!(?:[^<]|<(?!/?span))*>)' + rePattern, 'g'),
+        `<span class="highlight-new">${safeRep}</span>`
+      );
+    });
+  }
+  ra.innerHTML = highlighted;
+
+  document.getElementById('stat-count').textContent = totalCount;
+  document.getElementById('stat-chars').textContent = text.length.toLocaleString();
+  document.getElementById('stats-row').style.display = 'flex';
+
+  const cats = selectedCats.map(c => CATEGORIES.find(x => x.id === c)?.label).filter(Boolean).join(', ') || 'без категории';
+  saveHistoryEntry({ nameNom, nameGen, roleNom, roleGen, channel, gender: selectedGender, cats, replacements: totalCount, ts: Date.now(), spinText: document.getElementById('spin-input').value });
+
+  if (roleNoStemWarning) {
+    setTimeout(() => showToastError('Профессия не заменена - выбери категорию или введи профессию в поле'), 100);
+  } else {
+    showToast('Готово - ' + totalCount + ' замен');
+  }
+}
+
+function copyResult() {
+  const text = document.getElementById('result-area').textContent;
+  if (!text || text.includes('Здесь появится')) return;
+  navigator.clipboard.writeText(text).then(() => showToast('Скопировано!'));
+}
+
+function downloadResult() {
+  const text = document.getElementById('result-area').textContent;
+  if (!text || text.includes('Здесь появится')) return;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'spins_result.txt';
+  a.click();
+  showToast('Файл сохранён');
+}
+
+function clearAll() {
+  document.getElementById('spin-input').value = '';
+  document.getElementById('name-snippet').value = '';
+  document.getElementById('product-snippet').value = '';
+  document.getElementById('role-snippet').value = '';
+  document.getElementById('custom-products').value = '';
+  document.getElementById('name-gen').value = '';
+  document.getElementById('role-gen').value = '';
+  document.getElementById('channel').value = '';
+  const slider = document.getElementById('name-variants-count');
+  slider.value = 5;
+  document.getElementById('name-variants-label').textContent = '5';
+  document.getElementById('result-area').innerHTML = '<span class="result-placeholder">Здесь появится результат после замены...</span>';
+  document.getElementById('stats-row').style.display = 'none';
+  document.getElementById('preview-area').style.display = 'none';
+  document.getElementById('combos-area').style.display = 'none';
+  selectedCats = [];
+  document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
+  document.getElementById('products-list').innerHTML = '<span class="empty-hint">Выбери категорию выше</span>';
+  document.getElementById('sidebar-cat-display').textContent = 'Не выбрана';
+  setGender('f');
+}
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (id === 'history') renderHistory();
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  const dot = t.querySelector('.toast-dot');
+  dot.style.background = 'var(--success)';
+  document.getElementById('toast-text').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+function showToastError(msg) {
+  const t = document.getElementById('toast');
+  const dot = t.querySelector('.toast-dot');
+  dot.style.background = 'var(--danger)';
+  document.getElementById('toast-text').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// Init
+buildCatGrid();
+renderProfiles();
+
+// Live combo counter on typing
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('spin-input');
+  if (inp) inp.addEventListener('input', updateCombosOnInput);
+});
+// Also hook after inline load (since no DOMContentLoaded may fire late)
+window.addEventListener('load', () => {
+  const inp = document.getElementById('spin-input');
+  if (inp) inp.addEventListener('input', updateCombosOnInput);
+
+  // Apply saved theme label
+  if (localStorage.getItem('spinTheme') === 'light') {
+    document.getElementById('theme-label').textContent = 'Тёмная тема';
+  }
+
+  // Apply saved snow button label
+  if (localStorage.getItem('spinSnow') === 'off') {
+    document.getElementById('snow-label').textContent = 'Включить снег';
+  }
+});
+
+// ── SNOW ───────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('snow-canvas');
+  const ctx = canvas.getContext('2d');
+
+  let W, H;
+  let snowEnabled = true;
+  let animId = null;
+
+  const FLAKE_COUNT = 90;
+  const flakes = [];
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function randBetween(a, b) { return a + Math.random() * (b - a); }
+
+  function createFlake() {
+    return {
+      x: randBetween(0, W),
+      y: randBetween(-H, 0),
+      r: randBetween(1, 3.2),          // radius — небольшие снежинки
+      speed: randBetween(0.4, 1.1),    // медленное падение
+      drift: randBetween(-0.25, 0.25), // небольшой снос в сторону
+      wobble: randBetween(0, Math.PI * 2),
+      wobbleSpeed: randBetween(0.008, 0.022),
+      opacity: randBetween(0.25, 0.7), // прозрачность — не бьёт по глазам
+    };
+  }
+
+  function init() {
+    resize();
+    flakes.length = 0;
+    for (let i = 0; i < FLAKE_COUNT; i++) {
+      const f = createFlake();
+      f.y = randBetween(0, H); // разброс по высоте при старте
+      flakes.push(f);
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    for (const f of flakes) {
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${f.opacity})`;
+      ctx.fill();
+    }
+  }
+
+  function update() {
+    for (const f of flakes) {
+      f.wobble += f.wobbleSpeed;
+      f.x += f.drift + Math.sin(f.wobble) * 0.3;
+      f.y += f.speed;
+      if (f.y > H + 5) {
+        // reset to top
+        f.y = -5;
+        f.x = randBetween(0, W);
+        f.opacity = randBetween(0.25, 0.7);
+        f.speed = randBetween(0.4, 1.1);
+        f.r = randBetween(1, 3.2);
+      }
+      if (f.x > W + 5) f.x = -5;
+      if (f.x < -5) f.x = W + 5;
+    }
+  }
+
+  function loop() {
+    update();
+    draw();
+    animId = requestAnimationFrame(loop);
+  }
+
+  window._snowEnabled = true;
+
+  window.toggleSnow = function() {
+    window._snowEnabled = !window._snowEnabled;
+    const cnv = document.getElementById('snow-canvas');
+    const lbl = document.getElementById('snow-label');
+    if (window._snowEnabled) {
+      cnv.classList.remove('hidden');
+      lbl.textContent = 'Выключить снег';
+      if (!animId) loop();
+      localStorage.setItem('spinSnow', 'on');
+    } else {
+      cnv.classList.add('hidden');
+      lbl.textContent = 'Включить снег';
+      // stop animation after fade-out to save CPU
+      setTimeout(() => {
+        if (!window._snowEnabled) {
+          cancelAnimationFrame(animId);
+          animId = null;
+        }
+      }, 650);
+      localStorage.setItem('spinSnow', 'off');
+    }
+  };
+
+  window.addEventListener('resize', () => {
+    resize();
+    // reposition flakes that flew off screen
+    for (const f of flakes) {
+      if (f.x > W) f.x = randBetween(0, W);
+    }
+  });
+
+  // Init and start — but respect saved preference
+  init();
+  if (localStorage.getItem('spinSnow') !== 'off') {
+    loop();
+  } else {
+    // draw first frame so canvas isn't blank if toggled on later
+    draw();
+    canvas.classList.add('hidden');
+    window._snowEnabled = false;
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>СПРАВОЧНИК PRO</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0D0F14;
+  --surface: #161B27;
+  --surface2: #1E2535;
+  --surface3: #252D42;
+  --accent: #6C63FF;
+  --accent2: #00D4AA;
+  --accent3: #FF6B6B;
+  --text: #E8EAF0;
+  --text2: #8891A8;
+  --text3: #4A5568;
+  --border: rgba(108,99,255,0.15);
+  --border2: rgba(255,255,255,0.06);
+  --glow: rgba(108,99,255,0.3);
+  --glow2: rgba(0,212,170,0.2);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background ambient */
+body::before {
+  content: '';
+  position: fixed;
+  top: -30%;
+  left: -20%;
+  width: 60%;
+  height: 60%;
+  background: radial-gradient(circle, rgba(108,99,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -20%;
+  right: -20%;
+  width: 50%;
+  height: 50%;
+  background: radial-gradient(circle, rgba(0,212,170,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* LAYOUT */
+.app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+/* SIDEBAR */
+.sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: var(--surface);
+  border-right: 1px solid var(--border2);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar-logo {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--border2);
+}
+
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.logo-icon {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-sub {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding-left: 48px;
+}
+
+/* Sidebar search */
+.sidebar-search {
+  padding: 16px;
+  border-bottom: 1px solid var(--border2);
+}
+
+.search-wrap {
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px 10px 38px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+}
+
+.search-wrap input::placeholder { color: var(--text3); }
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text3);
+  font-size: 14px;
+}
+
+/* Filters */
+.sidebar-filters {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.sidebar-filters::-webkit-scrollbar { width: 4px; }
+.sidebar-filters::-webkit-scrollbar-track { background: transparent; }
+.sidebar-filters::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+
+.filter-section {
+  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border2);
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  cursor: pointer;
+  background: var(--surface2);
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.filter-header:hover { background: var(--surface3); }
+
+.filter-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.filter-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+
+.filter-chevron {
+  font-size: 10px;
+  color: var(--text3);
+  transition: transform 0.25s;
+}
+
+.filter-section.open .filter-chevron { transform: rotate(180deg); }
+
+.filter-options {
+  display: none;
+  background: var(--surface);
+  padding: 8px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.filter-section.open .filter-options { display: flex; }
+
+.filter-option {
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text2);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.filter-option:hover { background: var(--surface2); color: var(--text); }
+
+.filter-option.active {
+  background: rgba(108,99,255,0.15);
+  color: var(--accent);
+}
+
+.filter-option-count {
+  font-size: 10px;
+  background: var(--surface2);
+  padding: 2px 7px;
+  border-radius: 20px;
+  color: var(--text3);
+  font-family: 'Fira Code', monospace;
+}
+
+.filter-option.active .filter-option-count {
+  background: rgba(108,99,255,0.25);
+  color: var(--accent);
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-add, .btn-import {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+}
+
+.btn-add {
+  background: linear-gradient(135deg, var(--accent), #8B82FF);
+  color: white;
+  box-shadow: 0 4px 20px var(--glow);
+}
+
+.btn-add:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px var(--glow);
+}
+
+.btn-add:active { transform: translateY(0); }
+
+.btn-import {
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+}
+
+.btn-import:hover {
+  background: var(--surface3);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Header */
+.main-header {
+  padding: 24px 32px 20px;
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: rgba(13,15,20,0.8);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.header-left { flex: 1; min-width: 0; }
+
+.header-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.header-subtitle {
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.header-subtitle span {
+  font-family: 'Fira Code', monospace;
+  color: var(--accent2);
+}
+
+/* Global search */
+.global-search-wrap {
+  position: relative;
+  width: 340px;
+}
+
+.global-search-wrap input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 11px 42px 11px 16px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: all 0.25s;
+}
+
+.global-search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.12), 0 4px 20px rgba(0,0,0,0.3);
+  background: var(--surface2);
+}
+
+.global-search-wrap input::placeholder { color: var(--text3); }
+
+.global-search-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text3);
+  font-size: 16px;
+}
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+.view-toggle {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 2px;
+}
+
+.view-btn {
+  width: 34px;
+  height: 30px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text3);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.view-btn.active {
+  background: var(--surface3);
+  color: var(--accent);
+}
+
+/* Active filters bar */
+.active-filters-bar {
+  padding: 10px 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border2);
+  min-height: 0;
+  transition: all 0.3s;
+}
+
+.active-filters-bar.hidden { display: none; }
+
+.active-filter-label {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.active-filter-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(108,99,255,0.15);
+  border: 1px solid rgba(108,99,255,0.3);
+  border-radius: 20px;
+  padding: 4px 10px 4px 12px;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.active-filter-tag button {
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.active-filter-tag button:hover { opacity: 1; }
+
+.clear-all-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  color: var(--text3);
+  font-size: 11px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+}
+
+.clear-all-btn:hover {
+  border-color: var(--accent3);
+  color: var(--accent3);
+}
+
+/* Content area */
+.content {
+  flex: 1;
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 6px; }
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+  animation: fadeUp 0.5s ease;
+}
+
+.empty-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.4; }
+.empty-title { font-size: 22px; font-weight: 700; color: var(--text2); margin-bottom: 8px; }
+.empty-sub { font-size: 14px; color: var(--text3); line-height: 1.6; max-width: 360px; }
+
+/* Cards grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.cards-grid.list-view {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 24px;
+  position: relative;
+  transition: all 0.25s;
+  animation: fadeUp 0.4s ease;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.card:hover {
+  border-color: var(--border);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(108,99,255,0.1);
+}
+
+.card:hover::before { opacity: 1; }
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.card-title mark {
+  background: rgba(108,99,255,0.25);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.card:hover .card-actions { opacity: 1; }
+
+.card-action-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text3);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.card-action-btn:hover { background: var(--surface3); color: var(--text); }
+.card-action-btn.edit:hover { color: var(--accent2); }
+.card-action-btn.del:hover { color: var(--accent3); background: rgba(255,107,107,0.15); }
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.card-tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-family: 'Fira Code', monospace;
+}
+
+/* Tag colors based on filter category */
+.card-tag-0 { background: rgba(108,99,255,0.15); color: #9B95FF; border: 1px solid rgba(108,99,255,0.2); }
+.card-tag-1 { background: rgba(0,212,170,0.12); color: #00D4AA; border: 1px solid rgba(0,212,170,0.2); }
+.card-tag-2 { background: rgba(255,107,107,0.12); color: #FF8A8A; border: 1px solid rgba(255,107,107,0.2); }
+.card-tag-3 { background: rgba(255,184,0,0.12); color: #FFB800; border: 1px solid rgba(255,184,0,0.2); }
+.card-tag-4 { background: rgba(100,200,255,0.12); color: #64C8FF; border: 1px solid rgba(100,200,255,0.2); }
+
+/* Content entries */
+.card-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entry {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  position: relative;
+  transition: all 0.15s;
+}
+
+.entry:hover { border-color: rgba(108,99,255,0.25); }
+
+.entry-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 5px;
+  font-family: 'Fira Code', monospace;
+}
+
+.entry-value {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.entry-value mark {
+  background: rgba(0,212,170,0.2);
+  color: var(--accent2);
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.entry-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: var(--surface3);
+  color: var(--text3);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.15s;
+}
+
+.entry:hover .entry-copy-btn { opacity: 1; }
+.entry-copy-btn:hover { background: rgba(0,212,170,0.2); color: var(--accent2); }
+.entry-copy-btn.copied { background: rgba(0,212,170,0.25); color: var(--accent2); opacity: 1; }
+
+.card-date {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--text3);
+  font-family: 'Fira Code', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* List view card adjustments */
+.list-view .card { padding: 16px 20px; }
+.list-view .card:hover { transform: translateX(2px) translateY(0); }
+.list-view .card-entries { display: none; }
+.list-view .card-entries.list-expanded { display: flex; margin-top: 12px; }
+.list-view .card-header { margin-bottom: 6px; }
+.list-view .card-tags { margin-bottom: 0; }
+
+.list-view .card.expanded .card-entries { display: flex; margin-top: 12px; }
+
+.list-expand-btn {
+  font-size: 11px;
+  color: var(--text3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+  transition: color 0.15s;
+  margin-top: 6px;
+}
+
+.list-expand-btn:hover { color: var(--accent); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(108,99,255,0.1);
+  transform: scale(0.95) translateY(10px);
+  animation: modalIn 0.25s ease forwards;
+}
+
+.modal-header {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--text), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text3);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.modal-close:hover { background: rgba(255,107,107,0.15); color: var(--accent3); }
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+
+.modal-body::-webkit-scrollbar { width: 4px; }
+.modal-body::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-input:focus, .form-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.12);
+}
+
+.form-input::placeholder, .form-textarea::placeholder { color: var(--text3); }
+
+.form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+/* Entries builder */
+.entries-builder { display: flex; flex-direction: column; gap: 10px; }
+
+.entry-builder-item {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  position: relative;
+  animation: fadeUp 0.2s ease;
+}
+
+.entry-builder-row { display: flex; gap: 10px; margin-bottom: 8px; }
+
+.entry-builder-row .form-input { flex: 1; }
+
+.remove-entry-btn {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text3);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.remove-entry-btn:hover { background: rgba(255,107,107,0.15); color: var(--accent3); }
+
+.btn-add-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: transparent;
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text3);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+
+.btn-add-entry:hover { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.05); }
+
+/* Filter selector in modal */
+.filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.filter-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  transition: all 0.15s;
+  font-family: 'Fira Code', monospace;
+}
+
+.filter-chip:hover { border-color: var(--accent); color: var(--text); }
+.filter-chip.selected { background: rgba(108,99,255,0.15); border-color: rgba(108,99,255,0.4); color: var(--accent); }
+
+.modal-footer {
+  padding: 16px 28px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid var(--border2);
+}
+
+.btn-cancel {
+  padding: 10px 20px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+}
+
+.btn-cancel:hover { border-color: var(--text2); color: var(--text); }
+
+.btn-save {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--accent), #8B82FF);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px var(--glow);
+}
+
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--glow); }
+
+/* FILTER MANAGEMENT section in modal */
+.filter-manage-section { margin-top: 8px; }
+.filter-manage-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+
+/* SETTINGS / Filter editor modal */
+.filter-editor-wrap { display: flex; flex-direction: column; gap: 12px; }
+
+.filter-editor-item {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  animation: fadeUp 0.2s ease;
+}
+
+.filter-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filter-editor-header .form-input { flex: 1; }
+
+.filter-editor-options { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+
+.filter-option-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-option-row .form-input { flex: 1; font-size: 12px; padding: 7px 10px; }
+
+.remove-option-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text3);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.remove-option-btn:hover { background: rgba(255,107,107,0.15); color: var(--accent3); }
+
+.add-option-btn {
+  font-size: 11px;
+  color: var(--text3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.add-option-btn:hover { color: var(--accent2); }
+
+.btn-add-filter-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background: transparent;
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text3);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+
+.btn-add-filter-group:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(0,212,170,0.05); }
+
+/* Delete confirm */
+.delete-modal .modal { max-width: 420px; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  animation: toastIn 0.3s ease;
+}
+
+.toast.success { border-color: rgba(0,212,170,0.3); }
+.toast-icon { font-size: 16px; }
+.toast.success .toast-icon { color: var(--accent2); }
+
+/* Stats bar */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 32px 20px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-num {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Fira Code', monospace;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text3);
+  font-weight: 500;
+}
+
+.stat-sep { width: 1px; height: 20px; background: var(--border2); }
+
+/* Header settings btn */
+.header-settings-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text3);
+  font-size: 17px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.header-settings-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.08); }
+
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+
+/* Sort / options row */
+.content-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px 20px;
+}
+
+.sort-wrap { display: flex; align-items: center; gap: 8px; }
+.sort-label { font-size: 12px; color: var(--text3); }
+.sort-select {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--text2);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.sort-select:focus { border-color: var(--accent); }
+.sort-select option { background: var(--surface2); }
+
+/* No results */
+.no-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text3);
+  animation: fadeUp 0.3s ease;
+}
+.no-results-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.no-results-text { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+.no-results-sub { font-size: 13px; line-height: 1.6; }
+
+/* Filter count badge */
+.filter-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  margin-left: 6px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">
+        <div class="logo-icon">📚</div>
+        <span class="logo-text">Vorobey</span>
+      </div>
+      <a href="/" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);text-decoration:none;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:4px 10px;margin-top:10px;transition:all 0.15s;" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 3L5 8l5 5"/></svg> на главную</a>
+    </div>
+
+    <div class="sidebar-search">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="sidebarSearch" placeholder="Поиск по заголовку..." oninput="handleSidebarSearch()">
+      </div>
+    </div>
+
+    <div class="sidebar-filters" id="sidebarFilters">
+      <!-- Populated by JS -->
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-add" onclick="openAddModal()">
+        ＋ Добавить запись
+      </button>
+      <button class="btn-import" onclick="document.getElementById('importFile').click()">
+        ⬇ Импортировать
+      </button>
+      <button class="btn-import" onclick="exportEntriesToFile()">
+        ⬆ Экспортировать
+      </button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importEntriesFromFile(event)">
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="main-header">
+      <div class="header-left">
+        <div class="header-title" id="pageTitle">Все записи</div>
+        <div class="header-subtitle" id="pageSubtitle">Найдено: <span id="countDisplay">0</span> записей</div>
+      </div>
+      <div class="global-search-wrap">
+        <input type="text" id="globalSearch" placeholder="Поиск по содержимому..." oninput="handleGlobalSearch()">
+        <span class="global-search-icon">⌕</span>
+      </div>
+      <div class="header-right">
+        <div class="view-toggle">
+          <button class="view-btn active" id="gridViewBtn" onclick="setView('grid')" title="Сетка">⊞</button>
+          <button class="view-btn" id="listViewBtn" onclick="setView('list')" title="Список">☰</button>
+        </div>
+        <button class="header-settings-btn" onclick="openSettingsModal()" title="Управление фильтрами">⚙</button>
+      </div>
+    </div>
+
+    <div class="active-filters-bar hidden" id="activeFiltersBar">
+      <span class="active-filter-label">Фильтры:</span>
+      <div id="activeFilterTags"></div>
+      <button class="clear-all-btn" onclick="clearAllFilters()">✕ Сбросить все</button>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-item">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">Всего записей</div>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <div class="stat-num" id="statShown">0</div>
+        <div class="stat-label">Показано</div>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat-item">
+        <div class="stat-num" id="statFilters">0</div>
+        <div class="stat-label">Фильтров активно</div>
+      </div>
+    </div>
+
+    <div class="content-toolbar">
+      <div class="sort-wrap">
+        <span class="sort-label">Сортировка:</span>
+        <select class="sort-select" onchange="handleSort(this.value)">
+          <option value="newest">Новые сначала</option>
+          <option value="oldest">Старые сначала</option>
+          <option value="az">По алфавиту А-Я</option>
+          <option value="za">По алфавиту Я-А</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+      <!-- Cards go here -->
+    </div>
+  </main>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-overlay" id="entryModal" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Новая запись</div>
+      <button class="modal-close" onclick="closeModal('entryModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Заголовок *</label>
+        <input type="text" class="form-input" id="entryTitle" placeholder="Введите заголовок...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Теги / категории</label>
+        <div class="filter-chips" id="tagChips"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Содержимое записи</label>
+        <div class="entries-builder" id="entriesBuilder"></div>
+        <button class="btn-add-entry" onclick="addEntryField()" style="margin-top:10px;">+ Добавить поле</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('entryModal')">Отмена</button>
+      <button class="btn-save" onclick="saveEntry()">💾 Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS / FILTER EDITOR MODAL -->
+<div class="modal-overlay" id="settingsModal" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">⚙ Управление фильтрами</div>
+      <button class="modal-close" onclick="closeModal('settingsModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px; color:var(--text2); margin-bottom:20px; line-height:1.6;">
+        Создавайте группы фильтров с вариантами для удобной классификации записей.
+      </p>
+      <div class="filter-editor-wrap" id="filterEditorWrap"></div>
+      <button class="btn-add-filter-group" onclick="addFilterGroup()" style="margin-top:12px;">+ Добавить группу фильтров</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('settingsModal')">Отмена</button>
+      <button class="btn-save" onclick="saveFilters()">💾 Сохранить фильтры</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-overlay delete-modal" id="deleteModal" style="display:none;">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Удалить запись?</div>
+      <button class="modal-close" onclick="closeModal('deleteModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px; color:var(--text2); line-height:1.6;">
+        Вы уверены, что хотите удалить запись <strong id="deleteEntryName" style="color:var(--text)"></strong>? Это действие нельзя отменить.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('deleteModal')">Отмена</button>
+      <button class="btn-save" style="background:linear-gradient(135deg,#FF6B6B,#FF8E8E);box-shadow:0 4px 15px rgba(255,107,107,0.3);" onclick="confirmDelete()">🗑 Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+let state = {
+  entries: [],
+  filters: [],
+  activeFilters: {},   // { groupId: [optionValue, ...] }
+  searchGlobal: '',
+  searchSidebar: '',
+  sort: 'newest',
+  view: 'grid',
+  editingId: null,
+  deletingId: null,
+};
+
+// ============================================================
+//  INIT DATA
+// ============================================================
+const DEFAULT_FILTERS = [
+  {
+    id: 'cat1',
+    title: 'Категория',
+    options: ['Технологии', 'Медицина', 'Финансы', 'Право', 'Другое']
+  },
+  {
+    id: 'cat2',
+    title: 'Приоритет',
+    options: ['Высокий', 'Средний', 'Низкий']
+  },
+  {
+    id: 'cat3',
+    title: 'Статус',
+    options: ['Активно', 'В работе', 'Архив']
+  }
+];
+
+const DEFAULT_ENTRIES = [
+  {
+    id: 'e1',
+    title: 'Основы REST API',
+    tags: ['Технологии', 'Высокий', 'Активно'],
+    entries: [
+      { label: 'Описание', value: 'REST (Representational State Transfer) - архитектурный стиль для построения веб-сервисов с использованием HTTP.' },
+      { label: 'Методы', value: 'GET, POST, PUT, PATCH, DELETE - основные HTTP методы.' },
+      { label: 'Коды ответа', value: '200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 404 Not Found, 500 Server Error.' },
+      { label: 'Пример URL', value: 'https://api.example.com/v1/users/{id}' },
+    ],
+    createdAt: Date.now() - 86400000 * 3,
+  },
+  {
+    id: 'e2',
+    title: 'Кредитные ставки 2024',
+    tags: ['Финансы', 'Средний', 'Активно'],
+    entries: [
+      { label: 'Ключевая ставка ЦБ', value: '16% годовых' },
+      { label: 'Ипотека средняя', value: '17-19% для вторичного рынка' },
+      { label: 'Потребительский кредит', value: 'от 19.9% до 35% в зависимости от банка' },
+      { label: 'Автокредит', value: 'от 17% при первоначальном взносе от 20%' },
+    ],
+    createdAt: Date.now() - 86400000 * 1,
+  },
+  {
+    id: 'e3',
+    title: 'Базовые юридические термины',
+    tags: ['Право', 'Низкий', 'В работе'],
+    entries: [
+      { label: 'Оферта', value: 'Предложение о заключении договора, содержащее все существенные условия.' },
+      { label: 'Акцепт', value: 'Ответ лица, которому адресована оферта, о её принятии.' },
+      { label: 'Цессия', value: 'Уступка прав требования по договору третьему лицу.' },
+      { label: 'Индемнитет', value: 'Обязательство одной стороны возместить убытки другой.' },
+    ],
+    createdAt: Date.now() - 86400000 * 7,
+  },
+];
+
+// ============================================================
+//  STORAGE
+// ============================================================
+function save() {
+  try {
+    localStorage.setItem('refbook_entries', JSON.stringify(state.entries));
+    localStorage.setItem('refbook_filters', JSON.stringify(state.filters));
+  } catch(e) {}
+}
+
+function load() {
+  try {
+    const e = localStorage.getItem('refbook_entries');
+    const f = localStorage.getItem('refbook_filters');
+    state.entries = e ? JSON.parse(e) : DEFAULT_ENTRIES;
+    state.filters = f ? JSON.parse(f) : DEFAULT_FILTERS;
+  } catch(e) {
+    state.entries = DEFAULT_ENTRIES;
+    state.filters = DEFAULT_FILTERS;
+  }
+}
+
+// ============================================================
+//  FILTER + SEARCH LOGIC
+// ============================================================
+function getFiltered() {
+  let list = [...state.entries];
+
+  // Sidebar search (by title)
+  if (state.searchSidebar.trim()) {
+    const q = state.searchSidebar.toLowerCase();
+    list = list.filter(e => e.title.toLowerCase().includes(q));
+  }
+
+  // Global search (by everything)
+  if (state.searchGlobal.trim()) {
+    const q = state.searchGlobal.toLowerCase();
+    list = list.filter(e => {
+      if (e.title.toLowerCase().includes(q)) return true;
+      if (e.tags && e.tags.some(t => t.toLowerCase().includes(q))) return true;
+      if (e.entries && e.entries.some(en =>
+        (en.label || '').toLowerCase().includes(q) ||
+        (en.value || '').toLowerCase().includes(q)
+      )) return true;
+      return false;
+    });
+  }
+
+  // Active filters
+  const keys = Object.keys(state.activeFilters);
+  if (keys.length) {
+    list = list.filter(e => {
+      return keys.every(groupId => {
+        const vals = state.activeFilters[groupId];
+        if (!vals || !vals.length) return true;
+        return vals.some(v => e.tags && e.tags.includes(v));
+      });
+    });
+  }
+
+  // Sort
+  if (state.sort === 'newest') list.sort((a,b) => b.createdAt - a.createdAt);
+  else if (state.sort === 'oldest') list.sort((a,b) => a.createdAt - b.createdAt);
+  else if (state.sort === 'az') list.sort((a,b) => a.title.localeCompare(b.title, 'ru'));
+  else if (state.sort === 'za') list.sort((a,b) => b.title.localeCompare(a.title, 'ru'));
+
+  return list;
+}
+
+function countActiveFilters() {
+  return Object.values(state.activeFilters).reduce((s,v) => s + (v ? v.length : 0), 0);
+}
+
+// ============================================================
+//  HANDLERS
+// ============================================================
+function handleSidebarSearch() {
+  state.searchSidebar = document.getElementById('sidebarSearch').value;
+  render();
+}
+
+function handleGlobalSearch() {
+  state.searchGlobal = document.getElementById('globalSearch').value;
+  render();
+}
+
+function handleSort(v) {
+  state.sort = v;
+  render();
+}
+
+function setView(v) {
+  state.view = v;
+  document.getElementById('gridViewBtn').classList.toggle('active', v === 'grid');
+  document.getElementById('listViewBtn').classList.toggle('active', v === 'list');
+  renderCards();
+}
+
+function toggleFilter(groupId, value) {
+  if (!state.activeFilters[groupId]) state.activeFilters[groupId] = [];
+  const idx = state.activeFilters[groupId].indexOf(value);
+  if (idx === -1) state.activeFilters[groupId].push(value);
+  else state.activeFilters[groupId].splice(idx, 1);
+  if (state.activeFilters[groupId].length === 0) delete state.activeFilters[groupId];
+  render();
+}
+
+function clearAllFilters() {
+  state.activeFilters = {};
+  state.searchSidebar = '';
+  state.searchGlobal = '';
+  document.getElementById('sidebarSearch').value = '';
+  document.getElementById('globalSearch').value = '';
+  render();
+}
+
+function removeFilter(groupId, value) {
+  if (!state.activeFilters[groupId]) return;
+  state.activeFilters[groupId] = state.activeFilters[groupId].filter(v => v !== value);
+  if (!state.activeFilters[groupId].length) delete state.activeFilters[groupId];
+  render();
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function render() {
+  renderSidebarFilters();
+  renderActiveFiltersBar();
+  renderCards();
+  renderStats();
+}
+
+function renderStats() {
+  const filtered = getFiltered();
+  document.getElementById('statTotal').textContent = state.entries.length;
+  document.getElementById('statShown').textContent = filtered.length;
+  document.getElementById('statFilters').textContent = countActiveFilters();
+  document.getElementById('countDisplay').textContent = filtered.length;
+
+  // Update page title
+  const q = state.searchGlobal || state.searchSidebar;
+  if (q) document.getElementById('pageTitle').textContent = `Результаты поиска`;
+  else if (countActiveFilters() > 0) document.getElementById('pageTitle').textContent = `Фильтрация`;
+  else document.getElementById('pageTitle').textContent = `Все записи`;
+}
+
+function renderSidebarFilters() {
+  const wrap = document.getElementById('sidebarFilters');
+  const counted = getFilterCounts();
+
+  wrap.innerHTML = state.filters.map((group, gi) => {
+    const isOpen = group._open !== false;
+    const activeVals = state.activeFilters[group.id] || [];
+    const hasActive = activeVals.length > 0;
+    return `
+    <div class="filter-section ${isOpen ? 'open' : ''}" id="fsec-${group.id}">
+      <div class="filter-header" onclick="toggleFilterSection('${group.id}')">
+        <div class="filter-header-left">
+          <div class="filter-dot" style="background:${getGroupColor(gi)}"></div>
+          <span class="filter-title">${esc(group.title)}</span>
+          ${hasActive ? `<span class="filter-count-badge">${activeVals.length}</span>` : ''}
+        </div>
+        <span class="filter-chevron">▾</span>
+      </div>
+      <div class="filter-options">
+        ${group.options.map(opt => {
+          const isActive = activeVals.includes(opt);
+          const cnt = counted[opt] || 0;
+          return `
+          <div class="filter-option ${isActive ? 'active' : ''}" onclick="toggleFilter('${group.id}','${esc(opt)}')">
+            <span>${esc(opt)}</span>
+            <span class="filter-option-count">${cnt}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getFilterCounts() {
+  const map = {};
+  state.entries.forEach(e => {
+    (e.tags || []).forEach(t => {
+      map[t] = (map[t] || 0) + 1;
+    });
+  });
+  return map;
+}
+
+function toggleFilterSection(id) {
+  const group = state.filters.find(f => f.id === id);
+  if (group) group._open = group._open === false ? true : false;
+  renderSidebarFilters();
+}
+
+function renderActiveFiltersBar() {
+  const bar = document.getElementById('activeFiltersBar');
+  const tags = document.getElementById('activeFilterTags');
+  const hasFilters = countActiveFilters() > 0;
+
+  bar.classList.toggle('hidden', !hasFilters);
+  if (!hasFilters) return;
+
+  let html = '';
+  Object.entries(state.activeFilters).forEach(([gid, vals]) => {
+    (vals || []).forEach(v => {
+      html += `<div class="active-filter-tag">${esc(v)}<button onclick="removeFilter('${gid}','${esc(v)}')">×</button></div>`;
+    });
+  });
+  tags.innerHTML = html;
+}
+
+function renderCards() {
+  const content = document.getElementById('content');
+  const filtered = getFiltered();
+  const q = (state.searchGlobal || '').toLowerCase();
+  const q2 = (state.searchSidebar || '').toLowerCase();
+
+  if (filtered.length === 0) {
+    content.innerHTML = `
+      <div class="no-results">
+        <div class="no-results-icon">🔍</div>
+        <div class="no-results-text">Ничего не найдено</div>
+        <div class="no-results-sub">Попробуйте изменить поисковый запрос или сбросить фильтры</div>
+      </div>`;
+    return;
+  }
+
+  const isList = state.view === 'list';
+  const grid = isList ? 'cards-grid list-view' : 'cards-grid';
+
+  content.innerHTML = `<div class="${grid}" id="cardsGrid">
+    ${filtered.map(entry => renderCard(entry, q || q2)).join('')}
+  </div>`;
+}
+
+function renderCard(entry, q) {
+  const titleHtml = q ? highlightText(entry.title, q) : esc(entry.title);
+  const dateStr = new Date(entry.createdAt).toLocaleDateString('ru-RU', { day:'2-digit', month:'short', year:'numeric' });
+  const isList = state.view === 'list';
+
+  const tagsHtml = (entry.tags || []).map((t, ti) => {
+    const colorIdx = getTagColorIdx(t);
+    return `<span class="card-tag card-tag-${colorIdx}">${esc(t)}</span>`;
+  }).join('');
+
+  const entriesHtml = (entry.entries || []).map((en, i) => {
+    const valHtml = q ? highlightText(en.value, q) : esc(en.value);
+    return `
+    <div class="entry">
+      ${en.label ? `<div class="entry-label">${esc(en.label)}</div>` : ''}
+      <div class="entry-value">${valHtml}</div>
+      <button class="entry-copy-btn" data-copy-value="${encodeURIComponent(en.value || '')}" onclick="copyEntryFromData(this)" title="Копировать">⧉</button>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="card" id="card-${entry.id}">
+    <div class="card-header">
+      <div class="card-title">${titleHtml}</div>
+      <div class="card-actions">
+        <button class="card-action-btn edit" onclick="openEditModal('${entry.id}')" title="Редактировать">✎</button>
+        <button class="card-action-btn del" onclick="openDeleteModal('${entry.id}')" title="Удалить">🗑</button>
+      </div>
+    </div>
+    <div class="card-tags">${tagsHtml}</div>
+    ${!isList ? `<div class="card-entries">${entriesHtml}</div>` : `
+      <div class="card-entries" id="ce-${entry.id}" style="display:none">${entriesHtml}</div>
+      <button class="list-expand-btn" onclick="toggleListCard('${entry.id}', this)">▶ Раскрыть содержимое</button>
+    `}
+    <div class="card-date">📅 ${dateStr}</div>
+  </div>`;
+}
+
+function toggleListCard(id, btn) {
+  const ce = document.getElementById('ce-' + id);
+  if (ce.style.display === 'none') {
+    ce.style.display = 'flex';
+    btn.textContent = '▾ Свернуть';
+  } else {
+    ce.style.display = 'none';
+    btn.textContent = '▶ Раскрыть содержимое';
+  }
+}
+
+// ============================================================
+//  HIGHLIGHT
+// ============================================================
+function highlightText(text, q) {
+  if (!q || !text) return esc(text || '');
+  const escaped = esc(text);
+  const escapedQ = esc(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(escapedQ, 'gi'), m => `<mark>${m}</mark>`);
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(s) {
+  if (!s) return '';
+  return String(s).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+}
+
+// ============================================================
+//  COPY
+// ============================================================
+function copyEntryFromData(btn) {
+  const raw = btn.getAttribute('data-copy-value') || '';
+  let text = raw;
+  try {
+    text = decodeURIComponent(raw);
+  } catch (e) {}
+  copyEntry(btn, text);
+}
+
+function copyEntry(btn, text) {
+  const decoded = String(text || '').replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+  navigator.clipboard.writeText(decoded).then(() => {
+    btn.textContent = '✓';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '⧉';
+      btn.classList.remove('copied');
+    }, 1500);
+    showToast('Скопировано в буфер обмена');
+  }).catch(() => showToast('Ошибка копирования'));
+}
+
+function importEntriesFromFile(event) {
+  const input = event.target;
+  const file = input.files && input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      const importedEntries = normalizeImportedEntries(parsed);
+      if (!importedEntries.length) throw new Error('No entries found');
+
+      const importedTags = new Set();
+      const newEntries = importedEntries.map((item, index) => {
+        const tags = normalizeImportedTags(item);
+        tags.forEach(tag => importedTags.add(tag));
+        return {
+          id: item.id || `import-${Date.now()}-${index}`,
+          title: item.title || item.name || `Импортированная запись ${index + 1}`,
+          tags,
+          entries: normalizeImportedFieldList(item.entries),
+          createdAt: item.createdAt || Date.now() - index,
+        };
+      }).filter(entry => entry.title);
+
+      if (!newEntries.length) throw new Error('No valid entries');
+
+      state.entries = newEntries;
+
+      if (Array.isArray(parsed.filters) && parsed.filters.length) {
+        state.filters = parsed.filters.map((group, i) => ({
+          id: group.id || `impf-${Date.now()}-${i}`,
+          title: group.title || `Группа ${i + 1}`,
+          options: Array.isArray(group.options) ? group.options.filter(Boolean) : []
+        })).filter(group => group.title && group.options.length);
+      } else if (importedTags.size) {
+        state.filters = [{
+          id: `imported-tags-${Date.now()}`,
+          title: 'Категория',
+          options: Array.from(importedTags).filter(Boolean)
+        }];
+      } else {
+        state.filters = [];
+      }
+
+      state.activeFilters = {};
+      save();
+      render();
+      showToast(`Импортировано ${newEntries.length} записей`);
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось импортировать файл');
+    } finally {
+      input.value = '';
+    }
+  };
+
+  reader.onerror = () => {
+    showToast('Не удалось прочитать файл');
+    input.value = '';
+  };
+
+  reader.readAsText(file);
+}
+
+function exportEntriesToFile() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    entries: state.entries,
+    filters: state.filters
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `refbook-export-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast('Экспорт завершён');
+}
+
+function normalizeImportedEntries(data) {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.entries)) return data.entries;
+  if (data && Array.isArray(data.records)) return data.records;
+  if (data && data.title) return [data];
+  return [];
+}
+
+function normalizeImportedFieldList(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return raw.map(item => {
+      if (typeof item === 'string') return { label: '', value: item };
+      if (Array.isArray(item)) return { label: item[0] || '', value: item[1] || '' };
+      return { label: item.label || '', value: item.value ?? item.content ?? '' };
+    }).filter(item => item.label || item.value);
+  }
+  if (typeof raw === 'object') {
+    return Object.entries(raw).map(([label, value]) => ({ label, value: value ?? '' })).filter(item => item.label || item.value);
+  }
+  return [];
+}
+
+function normalizeImportedTags(item) {
+  const raw = item.tags || item.categories || item.category || [];
+  if (Array.isArray(raw)) {
+    return raw.filter(Boolean).map(String);
+  }
+  if (typeof raw === 'string') {
+    return raw.split(',').map(tag => tag.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+// ============================================================
+//  ADD / EDIT MODAL
+// ============================================================
+let entryFields = [];
+
+function openAddModal() {
+  state.editingId = null;
+  entryFields = [{ label: '', value: '' }];
+  document.getElementById('modalTitle').textContent = '✦ Новая запись';
+  document.getElementById('entryTitle').value = '';
+  renderTagChips([]);
+  renderEntryFields();
+  openModal('entryModal');
+}
+
+function openEditModal(id) {
+  const entry = state.entries.find(e => e.id === id);
+  if (!entry) return;
+  state.editingId = id;
+  entryFields = entry.entries ? entry.entries.map(e => ({...e})) : [{ label: '', value: '' }];
+  if (entryFields.length === 0) entryFields = [{ label: '', value: '' }];
+  document.getElementById('modalTitle').textContent = '✎ Редактировать запись';
+  document.getElementById('entryTitle').value = entry.title;
+  renderTagChips(entry.tags || []);
+  renderEntryFields();
+  openModal('entryModal');
+}
+
+let selectedTags = [];
+
+function renderTagChips(activeTags) {
+  selectedTags = [...activeTags];
+  const wrap = document.getElementById('tagChips');
+  const allOptions = state.filters.flatMap(f => f.options);
+  wrap.innerHTML = allOptions.map(opt => {
+    const sel = selectedTags.includes(opt);
+    return `<span class="filter-chip ${sel ? 'selected' : ''}" onclick="toggleTag('${esc(opt)}')">${esc(opt)}</span>`;
+  }).join('');
+}
+
+function toggleTag(val) {
+  const i = selectedTags.indexOf(val);
+  if (i === -1) selectedTags.push(val);
+  else selectedTags.splice(i, 1);
+  renderTagChips(selectedTags);
+}
+
+function addEntryField() {
+  entryFields.push({ label: '', value: '' });
+  renderEntryFields();
+}
+
+function removeEntryField(i) {
+  entryFields.splice(i, 1);
+  renderEntryFields();
+}
+
+function renderEntryFields() {
+  const wrap = document.getElementById('entriesBuilder');
+  wrap.innerHTML = entryFields.map((f, i) => `
+    <div class="entry-builder-item">
+      <div class="entry-builder-row">
+        <input type="text" class="form-input" style="font-size:12px;padding:8px 12px;" 
+          placeholder="Название поля (напр: Описание)" 
+          value="${esc(f.label)}"
+          oninput="entryFields[${i}].label=this.value">
+        <button class="remove-entry-btn" onclick="removeEntryField(${i})">×</button>
+      </div>
+      <textarea class="form-textarea" style="font-size:13px;" 
+        placeholder="Содержимое поля..."
+        oninput="entryFields[${i}].value=this.value">${esc(f.value)}</textarea>
+    </div>
+  `).join('');
+}
+
+function saveEntry() {
+  const title = document.getElementById('entryTitle').value.trim();
+  if (!title) { showToast('Введите заголовок!'); return; }
+
+  const entries = entryFields.filter(f => f.label || f.value);
+
+  if (state.editingId) {
+    const idx = state.entries.findIndex(e => e.id === state.editingId);
+    if (idx !== -1) {
+      state.entries[idx] = {
+        ...state.entries[idx],
+        title,
+        tags: [...selectedTags],
+        entries,
+      };
+    }
+    showToast('Запись обновлена ✓');
+  } else {
+    state.entries.push({
+      id: 'e' + Date.now(),
+      title,
+      tags: [...selectedTags],
+      entries,
+      createdAt: Date.now(),
+    });
+    showToast('Запись добавлена ✓');
+  }
+
+  save();
+  closeModal('entryModal');
+  render();
+}
+
+// ============================================================
+//  DELETE
+// ============================================================
+function openDeleteModal(id) {
+  state.deletingId = id;
+  const entry = state.entries.find(e => e.id === id);
+  document.getElementById('deleteEntryName').textContent = entry ? entry.title : '';
+  openModal('deleteModal');
+}
+
+function confirmDelete() {
+  state.entries = state.entries.filter(e => e.id !== state.deletingId);
+  save();
+  closeModal('deleteModal');
+  render();
+  showToast('Запись удалена');
+}
+
+// ============================================================
+//  SETTINGS (FILTER EDITOR)
+// ============================================================
+let tempFilters = [];
+
+function openSettingsModal() {
+  tempFilters = JSON.parse(JSON.stringify(state.filters));
+  renderFilterEditor();
+  openModal('settingsModal');
+}
+
+function renderFilterEditor() {
+  const wrap = document.getElementById('filterEditorWrap');
+  wrap.innerHTML = tempFilters.map((group, gi) => `
+    <div class="filter-editor-item">
+      <div class="filter-editor-header">
+        <input type="text" class="form-input" style="font-size:13px;padding:9px 12px;" 
+          value="${esc(group.title)}" placeholder="Название группы"
+          oninput="tempFilters[${gi}].title=this.value">
+        <button class="remove-entry-btn" onclick="removeFilterGroup(${gi})" title="Удалить группу">×</button>
+      </div>
+      <div class="filter-editor-options">
+        ${group.options.map((opt, oi) => `
+          <div class="filter-option-row">
+            <input type="text" class="form-input" value="${esc(opt)}" placeholder="Вариант..."
+              oninput="tempFilters[${gi}].options[${oi}]=this.value">
+            <button class="remove-option-btn" onclick="removeFilterOption(${gi},${oi})">×</button>
+          </div>
+        `).join('')}
+      </div>
+      <button class="add-option-btn" onclick="addFilterOption(${gi})">+ добавить вариант</button>
+    </div>
+  `).join('');
+}
+
+function addFilterGroup() {
+  tempFilters.push({ id: 'fg' + Date.now(), title: 'Новая группа', options: ['Вариант 1'] });
+  renderFilterEditor();
+}
+
+function removeFilterGroup(gi) {
+  tempFilters.splice(gi, 1);
+  renderFilterEditor();
+}
+
+function addFilterOption(gi) {
+  tempFilters[gi].options.push('');
+  renderFilterEditor();
+}
+
+function removeFilterOption(gi, oi) {
+  tempFilters[gi].options.splice(oi, 1);
+  renderFilterEditor();
+}
+
+function saveFilters() {
+  state.filters = tempFilters.map(f => ({
+    ...f,
+    options: f.options.filter(o => o.trim())
+  })).filter(f => f.title.trim());
+  state.activeFilters = {};
+  save();
+  closeModal('settingsModal');
+  render();
+  showToast('Фильтры сохранены ✓');
+}
+
+// ============================================================
+//  MODAL HELPERS
+// ============================================================
+function openModal(id) {
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+// Close on overlay click
+document.addEventListener('click', e => {
+  ['entryModal','settingsModal','deleteModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (e.target === el) closeModal(id);
+  });
+});
+
+// ============================================================
+//  TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast success';
+  t.innerHTML = `<span class="toast-icon">✓</span><span>${msg}</span>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+// ============================================================
+//  COLOR HELPERS
+// ============================================================
+const GROUP_COLORS = ['#6C63FF','#00D4AA','#FF6B6B','#FFB800','#64C8FF'];
+function getGroupColor(gi) { return GROUP_COLORS[gi % GROUP_COLORS.length]; }
+
+function getTagColorIdx(tag) {
+  for (let i = 0; i < state.filters.length; i++) {
+    if (state.filters[i].options.includes(tag)) return i % 5;
+  }
+  return 0;
+}
+
+// ============================================================
+//  BOOT
+// ============================================================
+load();
+render();
+</script>
+</body>
+</html>
