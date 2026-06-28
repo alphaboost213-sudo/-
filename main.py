@@ -1269,6 +1269,9 @@ HTML = '''<!DOCTYPE html>
 <div class="container">
   <div class="topbar">
     <span>Вход: {{ current_user.login }}</span>
+    <a href="/">← ToolKit</a>
+    <a href="/spin">SpinReplacer</a>
+    <a href="/ref">Справочник</a>
     {% if current_user.role == 'admin' %}<a href="/admin">Пользователи</a>{% endif %}
     <a href="/logout">Выйти</a>
   </div>
@@ -1657,36 +1660,27 @@ LOGIN_HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Вход — ToolKit</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Вход - ImgUniq</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0e0e11;color:#f0f0f0;font-family:'Inter',sans-serif;padding:20px}
-body::before{content:'';position:fixed;top:-20%;left:-10%;width:50%;height:50%;background:radial-gradient(circle,rgba(200,241,53,.06) 0%,transparent 65%);pointer-events:none}
-body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40%;height:40%;background:radial-gradient(circle,rgba(200,241,53,.04) 0%,transparent 65%);pointer-events:none}
-.card{width:min(400px,100%);background:#16161a;border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:36px;box-shadow:0 24px 80px rgba(0,0,0,.5);position:relative;z-index:1}
-.logo{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px}
-.logo span{color:#c8f135}
-.logo-sub{font-size:11px;color:#555566;text-transform:uppercase;letter-spacing:.1em;margin-bottom:28px}
-.field{margin-bottom:16px}
-.field label{display:block;font-size:11px;color:#888896;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
-.field input{width:100%;background:#1e1e24;border:1px solid rgba(255,255,255,.07);border-radius:10px;color:#f0f0f0;padding:13px 16px;outline:none;font-size:14px;font-family:'Inter',sans-serif;transition:border-color .2s,box-shadow .2s}
-.field input:focus{border-color:rgba(200,241,53,.4);box-shadow:0 0 0 3px rgba(200,241,53,.08)}
-.btn-submit{width:100%;margin-top:8px;border:0;border-radius:10px;padding:14px;background:#c8f135;color:#0e0e11;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:.02em;transition:background .15s,transform .1s}
-.btn-submit:hover{background:#a8d420;transform:translateY(-1px)}
-.btn-submit:active{transform:translateY(0)}
-.err{background:rgba(255,95,95,.08);border:1px solid rgba(255,95,95,.25);color:#ffaaaa;border-radius:10px;padding:11px 14px;margin-bottom:18px;font-size:13px}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0f;color:#f1f1f5;font-family:Inter,Arial,sans-serif}
+  .card{width:min(420px,calc(100vw - 32px));background:#111118;border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px;box-shadow:0 20px 70px rgba(0,0,0,.35)}
+  h1{margin:0 0 8px;font-size:28px;font-weight:600}p{margin:0 0 22px;color:#74748a;font-size:14px;line-height:1.5}
+  label{display:block;margin:14px 0 8px;color:#74748a;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  input{width:100%;box-sizing:border-box;background:#1a1a24;border:1px solid rgba(255,255,255,.08);border-radius:12px;color:#fff;padding:14px 15px;outline:none;font-size:15px}
+  input:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,.14)}
+  button{width:100%;margin-top:18px;border:0;border-radius:12px;padding:14px 18px;background:linear-gradient(135deg,#7c3aed,#0891b2);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+  .err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.28);color:#fecaca;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px}
 </style>
 </head>
 <body>
-<form class="card" method="post">
-  <div class="logo">Tool<span>Kit</span></div>
-  <div class="logo-sub">Авторизация</div>
-  {% if error %}<div class="err">{{ error }}</div>{% endif %}
-  <div class="field"><label>Логин</label><input name="login" autocomplete="username" autofocus></div>
-  <div class="field"><label>Пароль</label><input name="password" type="password" autocomplete="current-password"></div>
-  <button class="btn-submit" type="submit">Войти →</button>
-</form>
+  <form class="card" method="post">
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <label>Логин</label>
+    <input name="login" autocomplete="username" autofocus>
+    <label>Пароль</label>
+    <input name="password" type="password" autocomplete="current-password">
+    <button type="submit">Войти</button>
+  </form>
 </body>
 </html>'''
 
@@ -1695,464 +1689,68 @@ ADMIN_HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Пользователи — ToolKit</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Пользователи - ImgUniq</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0e0e11;--surface:#16161a;--surface2:#1e1e24;--surface3:#26262e;
-  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
-  --accent:#c8f135;--accent2:#a8d420;
-  --text:#f0f0f0;--muted:#888896;--muted2:#555566;
-  --danger:#ff5f5f;--danger-bg:rgba(255,95,95,.08);--danger-border:rgba(255,95,95,.25);
-  --success:#5fdb8a;--success-bg:rgba(95,219,138,.08);--success-border:rgba(95,219,138,.25);
-  --radius:14px;--radius-sm:10px;--radius-xs:7px;
-}
-body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;padding:0}
-body::before{content:'';position:fixed;top:-20%;left:-10%;width:50%;height:60%;background:radial-gradient(circle,rgba(200,241,53,.05) 0%,transparent 65%);pointer-events:none;z-index:0}
-a{color:var(--accent);text-decoration:none;transition:opacity .15s}
-a:hover{opacity:.75}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
-
-/* ── LAYOUT ── */
-.layout{display:flex;min-height:100vh;position:relative;z-index:1}
-
-/* ── SIDEBAR ── */
-.sidebar{width:240px;min-width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
-.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
-.logo-mark{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:-.5px}
-.logo-mark span{color:var(--accent)}
-.logo-sub{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
-.sidebar-nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-xs);cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s;position:relative;border:none;background:none;width:100%;text-align:left}
-.nav-item:hover{background:var(--surface2);color:var(--text)}
-.nav-item.active{background:var(--surface2);color:var(--text)}
-.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:16px;background:var(--accent);border-radius:0 3px 3px 0}
-.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
-.sidebar-footer{padding:16px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
-.sidebar-footer a,.sidebar-footer button{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--radius-xs);font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;text-decoration:none;width:100%}
-.sidebar-footer a:hover,.sidebar-footer button:hover{background:var(--surface2);color:var(--text);opacity:1}
-
-/* ── MAIN ── */
-.main{flex:1;overflow-y:auto;padding:36px 40px}
-.page{display:none}
-.page.active{display:block}
-
-/* ── PAGE HEADER ── */
-.page-header{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px}
-.page-title span{color:var(--accent)}
-.page-desc{font-size:13px;color:var(--muted);margin-top:4px}
-
-/* ── ALERTS ── */
-.alert{border-radius:var(--radius-sm);padding:12px 16px;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
-.alert-success{background:var(--success-bg);border:1px solid var(--success-border);color:#a0f0c0}
-.alert-error{background:var(--danger-bg);border:1px solid var(--danger-border);color:#ffaaaa}
-.alert-icon{font-size:16px;flex-shrink:0}
-
-/* ── CARDS ── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px}
-.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:8px}
-.card-title-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
-
-/* ── FORM ── */
-.form-grid{display:grid;grid-template-columns:1fr 1fr 130px;gap:12px;align-items:end}
-.field{display:flex;flex-direction:column;gap:6px}
-.field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.field input,.field select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--text);padding:11px 14px;outline:none;font-size:13px;font-family:'Inter',sans-serif;transition:border-color .2s,box-shadow .2s;width:100%}
-.field input:focus,.field select:focus{border-color:rgba(200,241,53,.35);box-shadow:0 0 0 3px rgba(200,241,53,.07)}
-.field select option{background:var(--surface2)}
-
-/* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:var(--radius-xs);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
-.btn:hover{background:var(--surface3);border-color:var(--border2)}
-.btn-primary{background:var(--accent);color:#0e0e11;border-color:var(--accent)}
-.btn-primary:hover{background:var(--accent2);border-color:var(--accent2)}
-.btn-danger{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-border)}
-.btn-danger:hover{background:rgba(255,95,95,.15)}
-.btn-sm{padding:6px 12px;font-size:12px;font-weight:500}
-.btn-icon{padding:7px;border-radius:7px}
-.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.danger-row{display:flex;gap:10px;flex-wrap:wrap}
-
-/* ── TABLE ── */
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted2);padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-td{padding:12px 12px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,.018)}
-.td-pass{font-family:'JetBrains Mono','Fira Code',monospace;font-size:12px;color:#d8b4fe;letter-spacing:.02em}
-.td-login{font-weight:500}
-.td-role-admin{color:var(--accent);font-weight:600;font-size:11px;background:rgba(200,241,53,.08);border:1px solid rgba(200,241,53,.2);border-radius:20px;padding:3px 10px;white-space:nowrap;display:inline-block}
-.td-role-user{color:var(--muted);font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px;white-space:nowrap;display:inline-block}
-.td-ok{color:var(--success);font-size:11px;font-weight:600}
-.td-bad{color:var(--danger);font-size:11px;font-weight:600}
-.td-time{color:var(--muted);font-size:12px;white-space:nowrap}
-.td-active-yes{color:var(--success)}
-.td-active-no{color:var(--danger)}
-.td-actions{display:flex;gap:6px;align-items:center}
-.ip-cell{font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;color:var(--muted)}
-
-/* ── MODAL ── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.open{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:28px;width:min(460px,100%);box-shadow:0 32px 100px rgba(0,0,0,.6);position:relative}
-.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px}
-.modal-title span{color:var(--accent)}
-.modal-close{position:absolute;top:16px;right:16px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--muted);width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .15s;line-height:1}
-.modal-close:hover{background:var(--surface3);color:var(--text)}
-.modal-fields{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
-.modal-hint{font-size:11px;color:var(--muted2);margin-top:4px}
-.modal-footer{display:flex;gap:10px;justify-content:flex-end}
-
-/* ── STATS BAR ── */
-.stats-bar{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;flex:1;min-width:100px}
-.stat-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);margin-bottom:2px}
-.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-
-/* ── TOAST ── */
-.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;font-size:13px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,.4);z-index:2000;transform:translateY(20px);opacity:0;transition:all .25s;pointer-events:none}
-.toast.show{transform:translateY(0);opacity:1}
-.toast-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-
-@media(max-width:760px){
-  .sidebar{display:none}
-  .main{padding:20px 16px}
-  .form-grid{grid-template-columns:1fr}
-  .stats-bar{gap:10px}
-}
+  body{margin:0;min-height:100vh;background:#0a0a0f;color:#f1f1f5;font-family:Inter,Arial,sans-serif;padding:32px 18px}
+  .wrap{max-width:980px;margin:0 auto}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}a{color:#a78bfa;text-decoration:none}
+  .card{background:#111118;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:22px;margin-bottom:18px}.muted{color:#74748a;font-size:13px;line-height:1.5}
+  h1{margin:0;font-size:30px}h2{margin:0 0 14px;font-size:18px}label{display:block;margin:12px 0 7px;color:#74748a;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  input,select{width:100%;box-sizing:border-box;background:#1a1a24;border:1px solid rgba(255,255,255,.08);border-radius:12px;color:#fff;padding:12px 14px;outline:none}
+  button{margin-top:14px;border:0;border-radius:12px;padding:12px 16px;background:linear-gradient(135deg,#7c3aed,#0891b2);color:#fff;font-weight:600;cursor:pointer}.danger{background:linear-gradient(135deg,#dc2626,#7f1d1d)}.danger-row{display:flex;gap:12px;flex-wrap:wrap}.danger-row form{display:inline}.grid{display:grid;grid-template-columns:1fr 1fr 140px;gap:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left;vertical-align:top}th{color:#74748a;font-size:11px;text-transform:uppercase;letter-spacing:.08em}.pass{font-family:monospace;color:#d8b4fe}.ok{color:#86efac}.bad{color:#fecaca}.msg{margin-bottom:14px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:12px 14px;color:#bbf7d0}.err{margin-bottom:14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:12px 14px;color:#fecaca}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}.table-wrap{overflow:auto}}
 </style>
 </head>
-<body>
-
-<!-- EDIT MODAL -->
-<div class="modal-overlay" id="editModal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeEditModal()">×</button>
-    <div class="modal-title">✎ Редактировать <span id="editModalLogin"></span></div>
-    <form method="post" id="editForm">
-      <input type="hidden" name="action" value="edit_user">
-      <input type="hidden" name="target_login" id="editTargetLogin">
-      <div class="modal-fields">
-        <div class="field">
-          <label>Новый логин</label>
-          <input name="new_login" id="editNewLogin" placeholder="Оставь пустым — без изменений">
-          <div class="modal-hint">Только латиница, цифры, символы ._@+-  (2–64 знака)</div>
-        </div>
-        <div class="field">
-          <label>Новый пароль</label>
-          <input name="new_password" id="editNewPassword" type="password" placeholder="Оставь пустым — без изменений">
-          <div class="modal-hint">Минимум 4 символа</div>
-        </div>
-        <div class="field">
-          <label>Роль</label>
-          <select name="new_role" id="editNewRole">
-            <option value="user">user</option>
-            <option value="admin">admin</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn" onclick="closeEditModal()">Отмена</button>
-        <button type="submit" class="btn btn-primary">Сохранить</button>
-      </div>
+<body><div class="wrap">
+  <div class="top"><h1>Пользователи</h1><div><a href="/">Главная</a> · <a href="/logout">Выйти</a></div></div>
+  <div class="card">
+    <h2>Добавить пользователя</h2>
+    {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <form method="post" class="grid">
+      <input type="hidden" name="action" value="add_user">
+      <div><label>Логин</label><input name="login" required></div>
+      <div><label>Пароль</label><input name="password" required></div>
+      <div><label>Роль</label><select name="role"><option value="user">user</option><option value="admin">admin</option></select></div>
+      <div style="grid-column:1/-1"><button type="submit">Добавить</button></div>
     </form>
   </div>
-</div>
 
-<!-- DELETE CONFIRM MODAL -->
-<div class="modal-overlay" id="deleteModal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeDeleteModal()">×</button>
-    <div class="modal-title">🗑 Удалить пользователя</div>
-    <form method="post" id="deleteForm">
-      <input type="hidden" name="action" value="delete_user">
-      <input type="hidden" name="target_login" id="deleteTargetLogin">
-      <p style="font-size:14px;color:var(--muted);margin-bottom:24px">Удалить аккаунт <strong id="deleteLoginLabel" style="color:var(--text)"></strong>? Это действие нельзя отменить.</p>
-      <div class="modal-footer">
-        <button type="button" class="btn" onclick="closeDeleteModal()">Отмена</button>
-        <button type="submit" class="btn btn-danger">Удалить</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="layout">
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-mark">Tool<span>Kit</span></div>
-      <div class="logo-sub">Панель управления</div>
-    </div>
-    <div class="sidebar-nav">
-      <button class="nav-item active" onclick="showPage('users',this)">
-        <span class="nav-icon">👥</span> Пользователи
-      </button>
-      <button class="nav-item" onclick="showPage('logs_auth',this)">
-        <span class="nav-icon">🔐</span> Логи входов
-      </button>
-      <button class="nav-item" onclick="showPage('logs_action',this)">
-        <span class="nav-icon">📋</span> Логи действий
-      </button>
-      <button class="nav-item" onclick="showPage('danger',this)">
-        <span class="nav-icon">⚠️</span> Опасная зона
-      </button>
-    </div>
-    <div class="sidebar-footer">
-      <a href="/">🏠 На главную</a>
-      <a href="/imguniq">🖼 ImgUniq</a>
-      <a href="/spin">🔄 SpinReplacer</a>
-      <a href="/ref">📚 Справочник</a>
-      <a href="/logout" style="color:var(--danger)">↩ Выйти</a>
+  <div class="card">
+    <h2>Очистка базы</h2>
+    <div class="danger-row">
+      <form method="post" onsubmit="return confirm('Точно очистить логи входов и действий?')">
+        <input type="hidden" name="action" value="clear_logs">
+        <button class="danger" type="submit">Очистить логи</button>
+      </form>
+      <form method="post" onsubmit="return confirm('Точно удалить всех пользователей кроме admin и очистить логи?')">
+        <input type="hidden" name="action" value="clear_users">
+        <button class="danger" type="submit">Оставить только admin</button>
+      </form>
     </div>
   </div>
 
-  <!-- MAIN -->
-  <div class="main">
+  <div class="card table-wrap">
+    <h2>Список пользователей и пароли</h2>
+    <table><thead><tr><th>Логин</th><th>Пароль</th><th>Роль</th><th>Активен</th><th>Создан</th></tr></thead><tbody>
+      {% for u in users %}<tr><td>{{ u.login }}</td><td class="pass">{{ u.password_plain }}</td><td>{{ u.role }}</td><td>{{ 'да' if u.is_active else 'нет' }}</td><td>{{ fmt_time(u.created) }}</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
 
-    {% if message %}<div class="alert alert-success"><span class="alert-icon">✓</span>{{ message }}</div>{% endif %}
-    {% if error %}<div class="alert alert-error"><span class="alert-icon">✕</span>{{ error }}</div>{% endif %}
+  <div class="card table-wrap">
+    <h2>Последние входы</h2>
+    <table><thead><tr><th>Время</th><th>Логин</th><th>Статус</th><th>Сообщение</th><th>IP</th></tr></thead><tbody>
+      {% for l in auth_logs %}<tr><td>{{ fmt_time(l.created) }}</td><td>{{ l.login }}</td><td class="{{ 'ok' if l.success else 'bad' }}">{{ 'успешно' if l.success else 'ошибка' }}</td><td>{{ l.message }}</td><td>{{ l.ip }}</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
 
-    <!-- PAGE: USERS -->
-    <div class="page active" id="page-users">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Пользо<span>ватели</span></div>
-          <div class="page-desc">Управление аккаунтами команды</div>
-        </div>
-      </div>
-
-      <div class="stats-bar">
-        <div class="stat-card">
-          <div class="stat-num">{{ users|length }}</div>
-          <div class="stat-label">Всего</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num">{{ users|selectattr('role','equalto','admin')|list|length }}</div>
-          <div class="stat-label">Админов</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num">{{ users|selectattr('is_active','equalto',1)|list|length }}</div>
-          <div class="stat-label">Активных</div>
-        </div>
-      </div>
-
-      <!-- ADD USER -->
-      <div class="card">
-        <div class="card-title"><div class="card-title-dot"></div>Добавить пользователя</div>
-        <form method="post">
-          <input type="hidden" name="action" value="add_user">
-          <div class="form-grid">
-            <div class="field"><label>Логин</label><input name="login" placeholder="ivan_petrov" required></div>
-            <div class="field"><label>Пароль</label><input name="password" placeholder="минимум 4 символа" required></div>
-            <div class="field"><label>Роль</label><select name="role"><option value="user">user</option><option value="admin">admin</option></select></div>
-          </div>
-          <div class="btn-row">
-            <button type="submit" class="btn btn-primary">＋ Добавить</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- USERS TABLE -->
-      <div class="card">
-        <div class="card-title"><div class="card-title-dot"></div>Список пользователей</div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>Логин</th><th>Пароль</th><th>Роль</th><th>Активен</th><th>Создан</th><th>Действия</th>
-            </tr></thead>
-            <tbody>
-              {% for u in users %}
-              <tr>
-                <td class="td-login">{{ u.login }}</td>
-                <td class="td-pass">{{ u.password_plain }}</td>
-                <td><span class="{{ 'td-role-admin' if u.role == 'admin' else 'td-role-user' }}">{{ u.role }}</span></td>
-                <td><span class="{{ 'td-active-yes' if u.is_active else 'td-active-no' }}">{{ '● да' if u.is_active else '○ нет' }}</span></td>
-                <td class="td-time">{{ fmt_time(u.created) }}</td>
-                <td>
-                  <div class="td-actions">
-                    <button class="btn btn-sm" onclick="openEditModal('{{ u.login }}','{{ u.role }}')">✎ Изменить</button>
-                    <button class="btn btn-sm btn-danger" onclick="openDeleteModal('{{ u.login }}')">🗑</button>
-                  </div>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- PAGE: AUTH LOGS -->
-    <div class="page" id="page-logs_auth">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Логи <span>входов</span></div>
-          <div class="page-desc">Последние 100 попыток авторизации</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Время</th><th>Логин</th><th>Статус</th><th>Сообщение</th><th>IP</th></tr></thead>
-            <tbody>
-              {% for l in auth_logs %}
-              <tr>
-                <td class="td-time">{{ fmt_time(l.created) }}</td>
-                <td class="td-login">{{ l.login }}</td>
-                <td><span class="{{ 'td-ok' if l.success else 'td-bad' }}">{{ '✓ успешно' if l.success else '✕ ошибка' }}</span></td>
-                <td style="color:var(--muted);font-size:12px">{{ l.message }}</td>
-                <td class="ip-cell">{{ l.ip }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- PAGE: ACTION LOGS -->
-    <div class="page" id="page-logs_action">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Логи <span>действий</span></div>
-          <div class="page-desc">Последние 100 действий пользователей</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Время</th><th>Логин</th><th>Действие</th><th>Детали</th><th>IP</th></tr></thead>
-            <tbody>
-              {% for l in action_logs %}
-              <tr>
-                <td class="td-time">{{ fmt_time(l.created) }}</td>
-                <td class="td-login">{{ l.login }}</td>
-                <td style="font-weight:500">{{ l.action }}</td>
-                <td style="color:var(--muted);font-size:12px">{{ l.details }}</td>
-                <td class="ip-cell">{{ l.ip }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- PAGE: DANGER ZONE -->
-    <div class="page" id="page-danger">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Опасная <span>зона</span></div>
-          <div class="page-desc">Необратимые операции с базой данных</div>
-        </div>
-      </div>
-      <div class="card" style="border-color:var(--danger-border)">
-        <div class="card-title"><div class="card-title-dot" style="background:var(--danger)"></div>Очистка данных</div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Действия ниже <strong style="color:var(--text)">нельзя отменить</strong>. Будь уверен перед нажатием.</p>
-        <div class="danger-row">
-          <form method="post" onsubmit="return confirm('Точно очистить все логи входов и действий?')">
-            <input type="hidden" name="action" value="clear_logs">
-            <button class="btn btn-danger" type="submit">🗑 Очистить логи</button>
-          </form>
-          <form method="post" onsubmit="return confirm('Удалить всех пользователей кроме admin и очистить логи?')">
-            <input type="hidden" name="action" value="clear_users">
-            <button class="btn btn-danger" type="submit">👤 Оставить только admin</button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /main -->
-</div><!-- /layout -->
-
-<!-- TOAST -->
-<div class="toast" id="toast"><div class="toast-dot" id="toastDot"></div><span id="toastText"></span></div>
-
-<script>
-// ── PAGE NAV ──────────────────────────────────────────────────────────────────
-function showPage(id, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + id).classList.add('active');
-  if (btn) btn.classList.add('active');
-  // scroll main to top
-  document.querySelector('.main').scrollTop = 0;
-}
-
-// Auto-open correct page from URL hash
-window.addEventListener('DOMContentLoaded', () => {
-  const hash = location.hash.replace('#','');
-  if (hash) {
-    const el = document.getElementById('page-' + hash);
-    if (el) {
-      const btn = document.querySelector('.nav-item[onclick*="' + hash + '"]');
-      showPage(hash, btn);
-    }
-  }
-  // If there's a message/error — keep users page active (already default)
-});
-
-// ── EDIT MODAL ────────────────────────────────────────────────────────────────
-function openEditModal(login, role) {
-  document.getElementById('editModalLogin').textContent = login;
-  document.getElementById('editTargetLogin').value = login;
-  document.getElementById('editNewLogin').value = '';
-  document.getElementById('editNewPassword').value = '';
-  document.getElementById('editNewRole').value = role;
-  document.getElementById('editModal').classList.add('open');
-}
-function closeEditModal() {
-  document.getElementById('editModal').classList.remove('open');
-}
-
-// ── DELETE MODAL ──────────────────────────────────────────────────────────────
-function openDeleteModal(login) {
-  document.getElementById('deleteTargetLogin').value = login;
-  document.getElementById('deleteLoginLabel').textContent = login;
-  document.getElementById('deleteModal').classList.add('open');
-}
-function closeDeleteModal() {
-  document.getElementById('deleteModal').classList.remove('open');
-}
-
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.classList.remove('open');
-  });
-});
-
-// Close modals on Escape
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-overlay').forEach(o => o.classList.remove('open'));
-  }
-});
-
-// ── TOAST ─────────────────────────────────────────────────────────────────────
-function showToast(msg, ok=true) {
-  const t = document.getElementById('toast');
-  document.getElementById('toastDot').style.background = ok ? 'var(--success)' : 'var(--danger)';
-  document.getElementById('toastText').textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-// Auto-toast on message/error present in DOM
-window.addEventListener('load', () => {
-  const alertOk = document.querySelector('.alert-success');
-  const alertErr = document.querySelector('.alert-error');
-  if (alertOk) { showToast(alertOk.textContent.trim(), true); alertOk.style.display='none'; }
-  if (alertErr) { showToast(alertErr.textContent.trim(), false); alertErr.style.display='none'; }
-});
-</script>
-</body>
-</html>'''
+  <div class="card table-wrap">
+    <h2>Последние действия</h2>
+    <table><thead><tr><th>Время</th><th>Логин</th><th>Действие</th><th>Детали</th><th>IP</th></tr></thead><tbody>
+      {% for l in action_logs %}<tr><td>{{ fmt_time(l.created) }}</td><td>{{ l.login }}</td><td>{{ l.action }}</td><td>{{ l.details }}</td><td>{{ l.ip }}</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+</div></body></html>'''
 
 
 def fmt_time(ts: float) -> str:
@@ -2229,71 +1827,6 @@ def admin_users():
             session['user'] = {'login': ADMIN_LOGIN, 'role': 'admin'}
             message = 'База пользователей очищена: оставлен только admin'
 
-        elif action == 'edit_user':
-            target_login = normalize_login(request.form.get('target_login', ''))
-            new_login = normalize_login(request.form.get('new_login', ''))
-            new_password = (request.form.get('new_password', '') or '').strip()
-            new_role = (request.form.get('new_role', '') or '').strip().lower()
-
-            if new_role not in ('user', 'admin'):
-                new_role = None
-
-            target_user = get_user_by_login(target_login)
-            if not target_user:
-                error = f'Пользователь {target_login} не найден'
-            elif new_login and new_login != target_login and get_user_by_login(new_login):
-                error = f'Логин {new_login} уже занят'
-            elif new_login and not re.fullmatch(r'[a-z0-9_.@+-]{2,64}', new_login):
-                error = 'Новый логин: 2–64 символа, латиница/цифры/._@+-'
-            elif new_password and len(new_password) < 4:
-                error = 'Пароль должен быть минимум 4 символа'
-            else:
-                updates = []
-                params = []
-                if new_login and new_login != target_login:
-                    updates.append('login = ?')
-                    params.append(new_login)
-                if new_password:
-                    updates.append('password_hash = ?')
-                    params.append(generate_password_hash(new_password))
-                    updates.append('password_plain = ?')
-                    params.append(new_password)
-                if new_role:
-                    updates.append('role = ?')
-                    params.append(new_role)
-                if updates:
-                    params.append(target_login)
-                    with get_db() as conn:
-                        conn.execute(f'UPDATE users SET {", ".join(updates)} WHERE login = ?', params)
-                    # Если текущий юзер менял себе логин — обновляем сессию
-                    current = get_current_user()
-                    if current and current['login'] == target_login and new_login and new_login != target_login:
-                        session['user'] = {'login': new_login, 'role': new_role or target_user['role']}
-                    log_action('user_edited', f'{target_login} → login={new_login or "-"} pass={"***" if new_password else "-"} role={new_role or "-"}')
-                    changed_login = new_login if new_login and new_login != target_login else target_login
-                    message = f'Пользователь {changed_login} обновлён'
-                else:
-                    message = 'Нечего изменять — все поля пустые'
-
-        elif action == 'delete_user':
-            target_login = normalize_login(request.form.get('target_login', ''))
-            current = get_current_user()
-            if not target_login:
-                error = 'Логин не указан'
-            elif target_login == normalize_login(ADMIN_LOGIN):
-                error = 'Нельзя удалить главного администратора'
-            elif current and target_login == current['login']:
-                error = 'Нельзя удалить самого себя'
-            else:
-                target_user = get_user_by_login(target_login)
-                if not target_user:
-                    error = f'Пользователь {target_login} не найден'
-                else:
-                    with get_db() as conn:
-                        conn.execute('DELETE FROM users WHERE login = ?', (target_login,))
-                    log_action('user_deleted', target_login)
-                    message = f'Пользователь {target_login} удалён'
-
         else:
             login_value = normalize_login(request.form.get('login', ''))
             password = (request.form.get('password', '') or '').strip()
@@ -2334,10 +1867,300 @@ def admin_users():
     )
 
 
+HUB_HTML = '''<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ToolKit — Главная</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0e11;
+  --surface: #16161a;
+  --surface2: #1e1e24;
+  --surface3: #26262e;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #c8f135;
+  --accent2: #a8d420;
+  --text: #f0f0f0;
+  --muted: #888896;
+  --muted2: #555566;
+  --danger: #ff5f5f;
+  --success: #5fdb8a;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+.hub-wrap { width: 100%; max-width: 860px; }
+
+.hub-header { text-align: center; margin-bottom: 56px; }
+.hub-logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.hub-logo span { color: var(--accent); }
+.hub-sub { font-size: 14px; color: var(--muted); letter-spacing: 0.05em; }
+.hub-user {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.hub-user strong { color: var(--accent); }
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 640px) { .tools-grid { grid-template-columns: 1fr; } }
+
+.tool-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.tool-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  background: linear-gradient(135deg, rgba(200,241,53,0.04), transparent);
+}
+.tool-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.tool-card:hover::before { opacity: 1; }
+
+.tool-icon {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.tool-card.accent-card .tool-icon {
+  background: rgba(200,241,53,0.08);
+  border-color: rgba(200,241,53,0.2);
+}
+.tool-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.tool-desc {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.tool-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(200,241,53,0.08);
+  border: 1px solid rgba(200,241,53,0.2);
+  border-radius: 999px;
+  padding: 4px 10px;
+  width: fit-content;
+  margin-top: auto;
+}
+.tool-badge svg { width: 11px; height: 11px; }
+
+.hub-footer {
+  margin-top: 48px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.hub-footer a {
+  font-size: 12px;
+  color: var(--muted2);
+  text-decoration: none;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.hub-footer a:hover { color: var(--muted); }
+.sep { color: var(--muted2); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="hub-wrap">
+  <div class="hub-header">
+    <div class="hub-logo">Tool<span>Kit</span></div>
+    <div class="hub-sub">ВНУТРЕННИЙ ИНСТРУМЕНТАРИЙ КОМАНДЫ</div>
+    {% if current_user %}
+    <div class="hub-user">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3"/><path d="M2 13c0-3.3 2.7-6 6-6s6 2.7 6 6H2z"/></svg>
+      Привет, <strong>{{ current_user.login }}</strong>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="tools-grid">
+    <a href="/imguniq" class="tool-card accent-card">
+      <div class="tool-icon">🖼️</div>
+      <div>
+        <div class="tool-name">ImgUniq</div>
+        <div class="tool-desc">Уникализация фото и видео. Регистрируй ссылки или загружай файлы — каждый рендер уникален.</div>
+      </div>
+      <div class="tool-badge">
+        <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 5v3l2 1"/></svg>
+        На сервере · Railway
+      </div>
+    </a>
+
+    <a href="/spin" class="tool-card">
+      <div class="tool-icon">🔄</div>
+      <div>
+        <div class="tool-name">SpinReplacer</div>
+        <div class="tool-desc">Замена имён, профессий и продуктов в спинтакс-текстах. Категории, профили, история.</div>
+      </div>
+      <div class="tool-badge">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13 4H3L1 8l2 4h10l2-4-2-4z"/></svg>
+        Локальный · localStorage
+      </div>
+    </a>
+
+    <a href="/ref" class="tool-card">
+      <div class="tool-icon">📚</div>
+      <div>
+        <div class="tool-name">Справочник PRO</div>
+        <div class="tool-desc">База тёплых фраз и шаблонов для переписки. Теги, фильтры, AI-генерация фраз.</div>
+      </div>
+      <div class="tool-badge">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13 4H3L1 8l2 4h10l2-4-2-4z"/></svg>
+        Локальный · localStorage
+      </div>
+    </a>
+  </div>
+
+  <div class="hub-footer">
+    <a href="/imguniq">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L1 8h3v6h4v-4h2v4h4V8h3L8 1z"/></svg>
+      ImgUniq
+    </a>
+    <span class="sep">·</span>
+    <a href="/admin">⚙️ Админка</a>
+    <span class="sep">·</span>
+    <a href="/logout">Выйти</a>
+  </div>
+</div>
+</body>
+</html>'''
+
+
 @app.route('/')
 @login_required
 def index():
+    return render_template_string(HUB_HTML, current_user=get_current_user())
+
+
+@app.route('/imguniq')
+@login_required
+def imguniq():
     return render_template_string(HTML, current_user=get_current_user())
+
+
+_SPIN_HTML_CACHE = None
+_KRASIV_HTML_CACHE = None
+
+
+def _inject_back_button(html: str, label: str) -> str:
+    """Инжектирует кнопку 'на главную' в .logo блок HTML-файла."""
+    back_btn = (
+        '<a href="/" style="display:inline-flex;align-items:center;gap:6px;'
+        'font-size:11px;color:var(--muted);text-decoration:none;'
+        'background:var(--surface2);border:1px solid var(--border);'
+        'border-radius:6px;padding:5px 10px;margin-top:10px;transition:all 0.15s;" '
+        'onmouseover="this.style.color=\'var(--text)\'" '
+        'onmouseout="this.style.color=\'var(--muted)\'">'
+        '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">'
+        '<path d="M10 3L5 8l5 5"/></svg>' + label + '</a>'
+    )
+    # Вставляем после первого </div> внутри .logo или .sidebar-logo
+    for marker in ['</div>\n</div>', '<div class="logo-sub"', '<div class="logo-mark"']:
+        idx = html.find(marker)
+        if idx != -1:
+            insert_at = html.find('</div>', idx) + len('</div>')
+            return html[:insert_at] + '\n' + back_btn + html[insert_at:]
+    return html
+
+
+@app.route('/spin')
+@login_required
+def spin_tool():
+    global _SPIN_HTML_CACHE
+    if _SPIN_HTML_CACHE is None:
+        spin_path = Path(__file__).parent / 'SpinReplacer.html'
+        if spin_path.exists():
+            _SPIN_HTML_CACHE = spin_path.read_text(encoding='utf-8')
+        else:
+            return 'SpinReplacer.html not found', 404
+    return _SPIN_HTML_CACHE, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+
+@app.route('/ref')
+@login_required
+def ref_tool():
+    global _KRASIV_HTML_CACHE
+    if _KRASIV_HTML_CACHE is None:
+        ref_path = Path(__file__).parent / 'krasiv.html'
+        if ref_path.exists():
+            _KRASIV_HTML_CACHE = ref_path.read_text(encoding='utf-8')
+        else:
+            return 'krasiv.html not found', 404
+    return _KRASIV_HTML_CACHE, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 
 @app.route('/api/register', methods=['POST'])
